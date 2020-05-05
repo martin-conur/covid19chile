@@ -76,7 +76,7 @@ app.layout = html.Div(children=[
                             value = "",
                             className = 'col s12 m12 l6',
                             style={'margin-bottom':10, 'display':'none'})], className ='row'),
-            html.Div(children= html.Div(id ='graphs'),className='row', style ={'height':'100hv'})
+            html.Div(children= html.Div(id ='graphs'),className='row')
                  ],style={'width':'98%','margin-left':10,'margin-right':10, 'margin-buttom':0, 'max-width':50000})
 
 
@@ -118,7 +118,7 @@ def graph_updater(dataset_value, comuna_value):
                                 text = df[df.columns[-2]], orientation = 'h', textposition = 'outside')),
                        layout = (go.Layout(xaxis={'showgrid':False, 'ticks':'', 'showticklabels':False}, yaxis={'showgrid':False})))
 
-        bar_fig.update_layout(margin={"r":0,"t":30,"l":0,"b":0}, height = 900)
+        bar_fig.update_layout(margin={"r":0,"t":30,"l":0,"b":0})
         bar_fig.update_layout(title_text = f'Casos confirmados acumulados al {df.columns[-2]}| Top Comunas')
 
         graphs.append(html.Div(dcc.Graph(

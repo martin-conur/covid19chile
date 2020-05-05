@@ -68,16 +68,16 @@ app.layout = html.Div(children=[
                                         ],
                             value ='CC',
                             style={'margin-bottom':10},
-                            className = 'col s12 m8 l6'),
+                            className = 'col s12 m12 l6'),
                 dcc.Dropdown(
                             id='comuna_dropdown',
                             options = [
                                 {'label':label, 'value':value} for label,value in zip (['Maule', 'BioBio', 'Los Lagos', 'Los Ríos'],[7,16,10,14])],
                             value = "",
-                            className = 'col s12 m8 l6',
+                            className = 'col s12 m12 l6',
                             style={'margin-bottom':10, 'display':'none'})], className ='row'),
             html.Div(children= html.Div(id ='graphs'),className='row')
-                 ],style={'width':'98%','margin-left':10,'margin-right':10,'max-width':50000, 'margin-buttom':20})
+                 ],style={'width':'98%','margin-left':10,'margin-right':10, 'margin-buttom':0, 'height':'100vh'})
 
 
 #zonas de cuarentena callback
@@ -108,7 +108,7 @@ def graph_updater(dataset_value, comuna_value):
                                     colorscale="Reds", zmin=0, zmax=100, showscale = False,
                                     marker_opacity=0.9, marker_line_width=0.01, featureidkey='properties.comuna'))
         fig.update_layout(mapbox_style="light", mapbox_accesstoken=token,
-                          mapbox_zoom=3, mapbox_center = {"lat": -37.0902, "lon": -72.7129}, height = 700)
+                          mapbox_zoom=3, mapbox_center = {"lat": -37.0902, "lon": -72.7129})
         fig.update_layout(margin={"r":0,"t":30,"l":0,"b":0}, title_text = f"Casos confirmados acumulados al {df.columns[-2]}")
 
         #bar graph
@@ -118,7 +118,7 @@ def graph_updater(dataset_value, comuna_value):
                                 text = df[df.columns[-2]], orientation = 'h', textposition = 'outside')),
                        layout = (go.Layout(xaxis={'showgrid':False, 'ticks':'', 'showticklabels':False}, yaxis={'showgrid':False})))
 
-        bar_fig.update_layout(margin={"r":0,"t":30,"l":0,"b":0}, height=700)
+        bar_fig.update_layout(margin={"r":0,"t":30,"l":0,"b":0})
         bar_fig.update_layout(title_text = f'Casos confirmados acumulados al {df.columns[-2]}| Top Comunas')
 
         graphs.append(html.Div(dcc.Graph(
@@ -128,7 +128,7 @@ def graph_updater(dataset_value, comuna_value):
         graphs.append(html.Div(dcc.Graph(
                                         id = 'scatter',
                                         figure = bar_fig,
-                                        ), className='col s12 m12 l6'))
+                                        ), className='col s12 m12 l6', style={'height':'100vh'}), )
 
     if dataset_value== 'ZC':
         import requests
@@ -160,7 +160,7 @@ def graph_updater(dataset_value, comuna_value):
                                 cuarentena_df['Fecha_Termino'], cuarentena_df['Detalle']],
                       align = 'left'))
         ])
-        table.update_layout(margin={"r":10,"t":30,"l":0,"b":20}, height = 700, title = 'Zonas en Cuarentena')
+        table.update_layout(margin={"r":10,"t":30,"l":0,"b":20}, title = 'Zonas en Cuarentena')
         #table.update_layout(plot_bgcolor =plt_background, paper_bgcolor=plt_background)
 
         #quarentine map
@@ -169,7 +169,7 @@ def graph_updater(dataset_value, comuna_value):
         map = px.scatter_mapbox(cuarentena_df, lat="latitude", lon="longitude",
                                 size= 'Estado',size_max=40, zoom=2, text = 'Nombre')
         map.update_layout(mapbox_style = 'light',mapbox_zoom=3.1, mapbox_center = {"lat": -36.8, "lon": -73.5}, title_text='Mapa Cuarentena')
-        map.update_layout(margin={"r":10,"t":30,"l":0,"b":0}, height = 700)
+        map.update_layout(margin={"r":10,"t":30,"l":0,"b":0})
         #map.update_layout(plot_bgcolor =plt_background, paper_bgcolor=plt_background)
 
         graphs.append(html.Div(dcc.Graph(
@@ -189,7 +189,7 @@ def graph_updater(dataset_value, comuna_value):
                                     marker_opacity=0.9, marker_line_width=0.01, featureidkey='properties.comuna'))
         fig.update_layout(mapbox_style="light", mapbox_accesstoken=token,
                           mapbox_zoom=3, mapbox_center = {"lat": -37.0902, "lon": -72.7129})
-        fig.update_layout(margin={"r":0,"t":30,"l":0,"b":0}, height = 700, title_text= f'Mapa Casos activos al {df.columns[-1]}')
+        fig.update_layout(margin={"r":0,"t":30,"l":0,"b":0}, title_text= f'Mapa Casos activos al {df.columns[-1]}')
 
         #bar graph
         df = df.dropna()
@@ -199,7 +199,7 @@ def graph_updater(dataset_value, comuna_value):
                             text = df[df.columns[-1]], orientation = 'h', textposition = 'outside')),
                             layout = (go.Layout(xaxis={'showgrid':False, 'ticks':'', 'showticklabels':False}, yaxis={'showgrid':False})))
 
-        bar_fig.update_layout(margin={"r":0,"t":30,"l":0,"b":0}, height=700)
+        bar_fig.update_layout(margin={"r":0,"t":30,"l":0,"b":0})
         bar_fig.update_layout(title_text =f'Casos activos al {df.columns[-1]}| Top Comunas')
         #appending
         graphs.append(html.Div(dcc.Graph(

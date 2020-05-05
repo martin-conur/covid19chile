@@ -40,6 +40,8 @@ with open('geojson/regiones.geojson') as json_file:
 
 #APP
 app = dash.Dash(__name__, external_stylesheets=external_css, external_scripts=external_js)
+
+server = app.server
 #supress callbacks exceptions
 app.config.suppress_callback_exceptions = True
 #the layout
@@ -213,4 +215,6 @@ def graph_updater(dataset_value, comuna_value):
 
     return graphs
 
-app.run_server(debug=True)  # Turn off reloader if inside Jupyter
+
+if __name__ == '__main__':
+    app.run_server(debug=True)

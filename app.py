@@ -213,4 +213,4 @@ def graph_updater(dataset_value, comuna_value):
 
     return graphs
 
-app.run_server(debug=True, dev_tools_hot_reload=True)  # Turn off reloader if inside Jupyter
+app.run_server(debug=True)  # Turn off reloader if inside Jupyter

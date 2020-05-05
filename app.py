@@ -77,7 +77,7 @@ app.layout = html.Div(children=[
                             className = 'col s12 m12 l6',
                             style={'margin-bottom':10, 'display':'none'})], className ='row'),
             html.Div(children= html.Div(id ='graphs'),className='row')
-                 ],style={'width':'98%','margin-left':10,'margin-right':10,'max-width':50000, 'margin-buttom':20})
+                 ],style={'width':'98%','margin-left':10,'margin-right':10,'max-width':50000, 'margin-buttom':20, 'heigth':'120vh', 'max-height':'140vh'})
 
 
 #zonas de cuarentena callback
@@ -108,7 +108,7 @@ def graph_updater(dataset_value, comuna_value):
                                     colorscale="Reds", zmin=0, zmax=100, showscale = False,
                                     marker_opacity=0.9, marker_line_width=0.01, featureidkey='properties.comuna'))
         fig.update_layout(mapbox_style="light", mapbox_accesstoken=token,
-                          mapbox_zoom=3, mapbox_center = {"lat": -37.0902, "lon": -72.7129}, height = 700)
+                          mapbox_zoom=3, mapbox_center = {"lat": -37.0902, "lon": -72.7129}, autosize = True)
         fig.update_layout(margin={"r":0,"t":30,"l":0,"b":0}, title_text = f"Casos confirmados acumulados al {df.columns[-2]}")
 
         #bar graph
@@ -118,17 +118,18 @@ def graph_updater(dataset_value, comuna_value):
                                 text = df[df.columns[-2]], orientation = 'h', textposition = 'outside')),
                        layout = (go.Layout(xaxis={'showgrid':False, 'ticks':'', 'showticklabels':False}, yaxis={'showgrid':False})))
 
-        bar_fig.update_layout(margin={"r":0,"t":30,"l":0,"b":0}, height=700)
+        bar_fig.update_layout(margin={"r":0,"t":30,"l":0,"b":0}, autosize = True)
         bar_fig.update_layout(title_text = f'Casos confirmados acumulados al {df.columns[-2]}| Top Comunas')
 
         graphs.append(html.Div(dcc.Graph(
                                         id = 'mapa',
-                                        figure = fig
+                                        figure = fig,
+                                        style = {'height':'100vh'}
                                         ), className = 'col s12 m12 l6'))
         graphs.append(html.Div(dcc.Graph(
                                         id = 'scatter',
-                                        figure = bar_fig,
-                                        ), className='col s12 m12 l6'))
+                                        figure = bar_fig,                                    
+                                        style = {'height':'100vh'}), className='col s12 m12 l6'))
 
     if dataset_value== 'ZC':
         import requests

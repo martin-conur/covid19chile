@@ -77,7 +77,7 @@ app.layout = html.Div(children=[
                             className = 'col s12 m12 l6',
                             style={'margin-bottom':10, 'display':'none'})], className ='row'),
             html.Div(children= html.Div(id ='graphs'),className='row')
-                 ],style={'width':'98%','margin-left':10,'margin-right':10, 'margin-buttom':0, 'max-width':50000})
+                 ],style={'width':'98%','margin-left':10,'margin-right':10, 'margin-buttom':0})
 
 
 #zonas de cuarentena callback

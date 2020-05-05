@@ -53,7 +53,7 @@ app.layout = html.Div(children=[
             html.H6('filtrar por:'),
             html.Div([
                 dcc.Dropdown(id='dataset_dropdown',
-                            options = [{'label':'Casos Confirmados', 'value':'CC'},
+                            options = [{'label':'Casos Confirmados Acumulados', 'value':'CC'},
                                         {'label':'Casos Nuevos', 'value':'CN'},
                                         {'label':'Zonas en Cuarentena', 'value':'ZC'},
                                         {'label':'Casos Activos', 'value':'CA'}],
@@ -140,6 +140,24 @@ def graph_updater(dataset_value, comuna_value):
         graphs.append(html.Div(dcc.Graph(
                                         id = 'mapa',
                                         figure = map
+                                        ), className = 'col s12 m4 l5'))
+
+    if dataset_value == 'CA':
+        df = pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/input/InformeEpidemiologico/CasosActualesPorComuna.csv")
+        #loading comunas
+        with open('geojson/comunas.geojson') as json_file:
+            geojson_comunas = json.load(json_file)
+
+        fig = go.Figure(go.Choroplethmapbox(geojson=geojson_comunas, locations=df.Comuna, z=df[df.columns[-1]],
+                                    colorscale="Reds", zmin=0, zmax=100, showscale = False,
+                                    marker_opacity=0.9, marker_line_width=0.01, featureidkey='properties.comuna'))
+        fig.update_layout(mapbox_style="carto-positron",
+                          mapbox_zoom=3, mapbox_center = {"lat": -37.0902, "lon": -72.7129})
+        fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+
+        graphs.append(html.Div(dcc.Graph(
+                                        id = 'mapa',
+                                        figure = fig
                                         ), className = 'col s12 m4 l5'))
     return graphs
 

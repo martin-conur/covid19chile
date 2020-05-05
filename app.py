@@ -124,11 +124,11 @@ def graph_updater(dataset_value, comuna_value):
         graphs.append(html.Div(dcc.Graph(
                                         id = 'mapa',
                                         figure = fig
-                                        ), className = 'col s12 m6 l6'))
+                                        ), className = 'col s12 m12 l6'))
         graphs.append(html.Div(dcc.Graph(
                                         id = 'scatter',
                                         figure = bar_fig,
-                                        ), className='col s12 m6 l6'))
+                                        ), className='col s12 m12 l6'))
 
     if dataset_value== 'ZC':
         import requests
@@ -175,11 +175,11 @@ def graph_updater(dataset_value, comuna_value):
         graphs.append(html.Div(dcc.Graph(
                                         id = 'table',
                                         figure = table
-                                        ), className = 'col s12 m8 l7'))
+                                        ), className = 'col s12 m12 l7'))
         graphs.append(html.Div(dcc.Graph(
                                         id = 'mapa',
                                         figure = map
-                                        ), className = 'col s12 m4 l5'))
+                                        ), className = 'col s12 m12 l5'))
 
     if dataset_value == 'CA':
         df = pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/input/InformeEpidemiologico/CasosActualesPorComuna.csv")
@@ -205,11 +205,11 @@ def graph_updater(dataset_value, comuna_value):
         graphs.append(html.Div(dcc.Graph(
                                         id = 'mapa',
                                         figure = fig
-                                        ), className = 'col s12 m6 l6'))
+                                        ), className = 'col s12 m12 l6'))
         graphs.append(html.Div(dcc.Graph(
                                         id = 'scatter',
                                         figure = bar_fig,
-                                        ), className='col s12 m6 l6'))
+                                        ), className='col s12 m12 l6'))
 
 
 

@@ -78,14 +78,16 @@ app = dash.Dash(__name__, external_stylesheets=external_css, external_scripts=ex
 server = app.server
 #supress callbacks exceptions
 app.config.suppress_callback_exceptions = True
+
+app.title = "Covidatos"
 #the layout
 app.layout = html.Div(children=[
     html.Div(
         className="app-header",
         children=[
-            html.Div([html.Span('Planton', style={'color': '#5c75f2', 'font-style': 'italic', 'font-weight': 'bold'}),
+            html.Div(html.A([html.Span('Planton', style={'color': '#5c75f2', 'font-style': 'italic', 'font-weight': 'bold'}),
                       html.Span(' Andino', style={'color': '#4FD7EC', 'font-style': 'italic', 'font-weight': 'bold'}),
-                      html.Span(' spa', style={'color': 'gray', 'font-style': 'italic'})])
+                      html.Span(' spa', style={'color': 'gray', 'font-style': 'italic'})], href ='https://plancton.cl/'))
                       ], style={'margin-bottom':30},
             ),
             html.H3([html.Span('CENTRO DE DATOS:', style={'font-weight': 'bold'}),
@@ -94,12 +96,13 @@ app.layout = html.Div(children=[
             html.H6('filtrar por:'),
             html.Div([
                 dcc.Dropdown(id='dataset_dropdown',
-                            options = [{'label':'Casos Confirmados Acumulados', 'value':'CC'},
+                            options = [ {'label':'Series de tiempo', 'value':'ST'},
+                                        {'label':'Casos Confirmados Acumulados', 'value':'CC'},
                                         {'label':'Casos Activos', 'value':'CA'},
                                         {'label':'Zonas en Cuarentena', 'value':'ZC'},
                                         {'label':'Estadística', 'value':'EST'},
                                         ],
-                            value ='CC',
+                            value ='ST',
                             style={'margin-bottom':10},
                             className = 'col s12 m12 l6'),
                 dcc.Dropdown(
@@ -109,7 +112,11 @@ app.layout = html.Div(children=[
                             value = 0,
                             className = 'col s12 m12 l6',
                             style={'margin-bottom':10, 'display':'none'})], className ='row'),
-            html.Div(children= html.Div(id ='graphs'),className='row')
+            html.Div(children= html.Div(id ='graphs'),className='row'),
+            html.Footer("La fuente de los datos corresponde al repositorio del Ministerio de Ciencias y los informes Epistemiológicos"),
+            html.Hr(),
+            html.Footer(["Creado por ", html.A('@ritmandotpy', href='https://twitter.com/RitmanDotpy')]),
+            html.Footer(" ")
                  ],style={'width':'98%','margin-left':10,'margin-right':10,'max-width':50000, 'margin-buttom':20, 'heigth':'120vh', 'max-height':'140vh'})
 
 
@@ -118,8 +125,8 @@ app.layout = html.Div(children=[
     Output('comuna_dropdown','style'),
     [Input('dataset_dropdown','value')]
 )
-def cuarentena_callback(value):
-    if value =='ZC':
+def hide_dd_callback(value):
+    if value in ['ZC', 'EST']:
         return {'display':'none'}
     else:
         return {'display':'block'}
@@ -133,6 +140,66 @@ def cuarentena_callback(value):
 
 def graph_updater(dataset_value, comuna_value):
     graphs = []
+
+    if dataset_value == 'ST':
+        activos_df = pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/input/InformeEpidemiologico/CasosActualesPorComuna.csv")
+        activos = activos_df.melt(id_vars=["Region","Codigo region", "Comuna","Codigo comuna", "Poblacion"],
+                          var_name="Fecha",
+                          value_name="Activos")
+        confirmados_df =  pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/input/InformeEpidemiologico/CasosAcumuladosPorComuna.csv")
+        confirmados = confirmados_df.melt(id_vars=["Region","Codigo region", "Comuna","Codigo comuna", "Poblacion", "Tasa"],
+                                          var_name="Fecha",
+                                          value_name="Confirmados")
+
+        #merging
+        merged = confirmados.merge(activos, how ='inner')
+        merged = merged.dropna()
+        #filtering by comuna
+        if comuna_value != 0:
+            filtered_merge = merged.loc[merged['Codigo region'] == comuna_value]
+
+        else:
+            filtered_merge = merged
+        #getting the filtered maxs
+        max_confirmados = filtered_merge.Confirmados.max()*1.1 #+10%
+        max_activos = filtered_merge.Activos.max()*1.1 #+10%
+        max_tasa = filtered_merge.Tasa.max()*1.1
+        #plotting
+        double_scatter = px.scatter(filtered_merge, x="Confirmados", y="Activos", animation_frame="Fecha", animation_group="Comuna",
+                                   size="Poblacion", color="Region", hover_name="Comuna", text='Comuna',
+                                   log_x=False, range_y=[0,max_activos], range_x=[0,max_confirmados])
+        double_scatter.update_layout(margin={"r":0,"t":50,"l":0,"b":0},
+                                    title_text = "Casos Confirmados vs Activos actualmente: Serie de tiempo")
+
+        tasa = px.scatter(filtered_merge, x=filtered_merge.Confirmados*100000/filtered_merge.Poblacion, y="Activos", animation_frame="Fecha", animation_group="Comuna",
+                                   size="Poblacion", color="Region", hover_name="Comuna", text='Comuna',
+                                   log_x=False, range_y=[0,max_activos], range_x=[0,max_tasa])
+        tasa.update_layout(margin={"r":0,"t":80,"l":0,"b":0},
+                            title_text = "Tasa de Incidencia (cada 100k Hab.) vs casos activos",
+                            xaxis_title = 'Casos Confirmados por 100 mil habitantes')
+
+        simple_scatter = px.bar(merged, x="Region", y="Confirmados", color="Region",
+                          animation_frame="Fecha", animation_group="Comuna", log_y = True)
+        simple_scatter.update_layout(margin={"r":0,"t":80,"l":0,"b":0}, title_text = "Caso Confirmados acumulados en el tiempo (escala logarítmica)")
+
+        graphs.append(html.Div(dcc.Graph(
+                                        id = 'double_scatter',
+                                        figure = double_scatter,
+                                        style = {'height':'100vh'}
+                                        ), className = 'col s12 m12 l12'))
+
+        graphs.append(html.Div(dcc.Graph(
+                                        id = 'tasa',
+                                        figure = tasa,
+                                        style = {'height':'100vh'}
+                                        ), className = 'col s12 m12 l12'))
+
+        graphs.append(html.Div(dcc.Graph(
+                                        id = 'simple_scatter',
+                                        figure = simple_scatter,
+                                        style = {'height':'100vh'}), className='col s12 m12 l12'))
+
+
 
     if dataset_value == 'CC':
 
@@ -258,12 +325,74 @@ def graph_updater(dataset_value, comuna_value):
         #appending
         graphs.append(html.Div(dcc.Graph(
                                         id = 'mapa',
-                                        figure = fig
+                                        figure = fig,
+                                        style = {'height':'100vh'}
                                         ), className = 'col s12 m12 l6'))
         graphs.append(html.Div(dcc.Graph(
                                         id = 'scatter',
                                         figure = bar_fig,
+                                        style = {'height':'100vh'}
                                         ), className='col s12 m12 l6'))
+
+
+    if  dataset_value == 'EST':
+
+        #fallecidos
+        facdf = pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto14/FallecidosCumulativo.csv")
+        facdf = facdf.melt(id_vars=['Region'],
+                                      var_name='Fecha', value_name='Fallecidos')
+        fig_fall = px.scatter(facdf, x='Fecha', y='Fallecidos', color ='Region', text='Region')
+        fig_fall.update_traces(mode='markers+lines')
+        fig_fall.update_traces(mode='markers+lines', hovertemplate=  '%{text}<br> %{y}<extra></extra>')
+        fig_fall.update_layout(margin={"r":0,"t":50,"l":0,"b":0}, title_text = "Fallecidos acumulativo por regiones", hovermode='x')
+
+        #pacientes criticos
+        criticos_df=pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto23/PacientesCriticos.csv")
+        criticos_df = criticos_df.melt(id_vars="Casos", var_name ='Fecha', value_name ='Pacientes Críticos')
+
+        fig_crit = go.Figure(
+            data=(px.scatter(criticos_df, x='Fecha', y='Pacientes Críticos')
+                 )
+                            )
+        fig_crit.update_traces( mode='markers+lines')
+        fig_crit.update_layout(margin={"r":0,"t":50,"l":0,"b":0}, title_text = "Pacientes críticos")
+
+        #ventiladores
+        ventiladores_df = pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto20/NumeroVentiladores.csv")
+        ventiladores_df = ventiladores_df.melt(id_vars='Ventiladores', var_name='Fecha', value_name='Nro Ventiladores')
+        fig_ven = px.scatter(ventiladores_df, x='Fecha', y='Nro Ventiladores', color ='Ventiladores', text ='Ventiladores')
+        fig_ven.update_traces(mode='markers+lines', hovertemplate=  '%{text}<br> %{y}<extra></extra>')
+        fig_ven.update_layout(margin={"r":0,"t":50,"l":0,"b":0}, title_text = "Disponibilidad de ventiladores en Chile", hovermode ='x')
+
+        #pacientes uci
+        uci_df = pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto8/UCI.csv")
+        uci_df = uci_df.melt(id_vars=['Region', 'Codigo region', 'Poblacion'],
+                                      var_name='Fecha', value_name='Pacientes UCI')
+        fig_uci = px.line(uci_df, x='Fecha', y='Pacientes UCI', text ='Region', color = 'Region')
+        fig_uci.update_traces(mode='markers+lines', hovertemplate=  '%{text}<br> %{y}<extra></extra>')
+        fig_uci.update_layout(margin={"r":0,"t":50,"l":0,"b":0}, title_text = "Pacientes en UCI por regiones", hovermode='x')
+
+        graphs.append(html.Div(dcc.Graph(
+                                        id = 'fig_fall',
+                                        figure = fig_fall,
+                                        style = {'height':'60vh'}
+                                        ), className='col s12 m12 l12'))
+
+        graphs.append(html.Div(dcc.Graph(
+                                        id = 'fig_crit',
+                                        figure = fig_crit,
+                                        style = {'height':'60vh'}
+                                        ), className='col s12 m12 l12'))
+        graphs.append(html.Div(dcc.Graph(
+                                        id = 'fig_ven',
+                                        figure = fig_ven,
+                                        style = {'height':'60vh'}
+                                        ), className='col s12 m12 l12'))
+        graphs.append(html.Div(dcc.Graph(
+                                        id = 'fig_uci',
+                                        figure = fig_uci,
+                                        style = {'height':'60vh'}
+                                        ), className='col s12 m12 l12'))
 
 
 

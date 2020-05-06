@@ -102,7 +102,7 @@ app.layout = html.Div(children=[
                                         {'label':'Zonas en Cuarentena', 'value':'ZC'},
                                         {'label':'Estadística', 'value':'EST'},
                                         ],
-                            value ='ST',
+                            value ='CC',
                             style={'margin-bottom':10},
                             className = 'col s12 m12 l6'),
                 dcc.Dropdown(

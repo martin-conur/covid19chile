@@ -37,7 +37,41 @@ with open('geojson/comunas.geojson') as json_file:
 with open('geojson/regiones.geojson') as json_file:
     geojson_regiones = json.load(json_file)
 
+#region names
+region_names = {15: 'Arica y Parinacota',
+                 1: 'Tarapacá',
+                 2: 'Antofagasta',
+                 3: 'Atacama',
+                 4: 'Coquimbo',
+                 5: 'Valparaíso',
+                 13: 'Metropolitana',
+                 6: 'O’Higgins',
+                 7: 'Maule',
+                 16: 'Ñuble',
+                 8: 'Biobío',
+                 9: 'Araucanía',
+                 14: 'Los Ríos',
+                 10: 'Los Lagos',
+                 11: 'Aysén',
+                 12: 'Magallanes',
+                 0:'Todas las regiones'}
 
+region_center = {11: (-75.50096893, -48.60930634),
+                 2: (-69.30046955072464, -23.513314398840592),
+                 9: (-72.21119059695653, -38.69860242717392),
+                 15: (-70.28399658, -19.11595917),
+                 3: (-69.95640176646154, -27.569922168923075),
+                 8: (-72.56162326936172, -37.54021039914894),
+                 4: (-70.81710363918369, -30.67727190142857),
+                 6: (-71.12630634967742, -34.43829591870968),
+                 10: (-73.0, -41.2),
+                 14: (-72.43220677088233, -40.00901682235294),
+                 12: (-69.26139069, -55.20180511),
+                 7: (-71.27427253750001, -35.588552379999996),
+                 16: (-71.90628936840001, -36.613470154400005),
+                 13: (-70.67288351031247, -33.61857366562501),
+                 1: (-69.38311566842106, -20.137420001842106),
+                 5: (-71.12692737575001, -32.930289125250006)}
 #APP
 app = dash.Dash(__name__, external_stylesheets=external_css, external_scripts=external_js)
 
@@ -61,7 +95,6 @@ app.layout = html.Div(children=[
             html.Div([
                 dcc.Dropdown(id='dataset_dropdown',
                             options = [{'label':'Casos Confirmados Acumulados', 'value':'CC'},
-                                        {'label':'Casos Nuevos', 'value':'CN'},
                                         {'label':'Casos Activos', 'value':'CA'},
                                         {'label':'Zonas en Cuarentena', 'value':'ZC'},
                                         {'label':'Estadística', 'value':'EST'},
@@ -72,8 +105,8 @@ app.layout = html.Div(children=[
                 dcc.Dropdown(
                             id='comuna_dropdown',
                             options = [
-                                {'label':label, 'value':value} for label,value in zip (['Maule', 'BioBio', 'Los Lagos', 'Los Ríos'],[7,16,10,14])],
-                            value = "",
+                                {'label':region_names[i], 'value':i} for i in range(17)],
+                            value = 0,
                             className = 'col s12 m12 l6',
                             style={'margin-bottom':10, 'display':'none'})], className ='row'),
             html.Div(children= html.Div(id ='graphs'),className='row')
@@ -102,21 +135,32 @@ def graph_updater(dataset_value, comuna_value):
     graphs = []
 
     if dataset_value == 'CC':
+
         df = pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/input/InformeEpidemiologico/CasosAcumuladosPorComuna.csv")
+        if comuna_value != 0:
+            df = df.loc[df['Codigo region'] == comuna_value]
 
         fig = go.Figure(go.Choroplethmapbox(geojson=geojson_comunas, locations=df.Comuna, z=df[df.columns[-2]],
                                     colorscale="Reds", zmin=0, zmax=100, showscale = False,
                                     marker_opacity=0.9, marker_line_width=0.01, featureidkey='properties.comuna'))
-        fig.update_layout(mapbox_style="light", mapbox_accesstoken=token,
-                          mapbox_zoom=3, mapbox_center = {"lat": -37.0902, "lon": -72.7129}, autosize = True)
+        fig.update_layout(mapbox_style="light", mapbox_accesstoken=token, autosize = True)
         fig.update_layout(margin={"r":0,"t":30,"l":0,"b":0}, title_text = f"Casos confirmados acumulados al {df.columns[-2]}")
+
+        #centering and zooming depending on the region
+        if comuna_value == 0:
+            fig.update_layout(mapbox_zoom=3, mapbox_center = {"lat": -37.0902, "lon": -72.7129})
+        else:
+            fig.update_layout(mapbox_zoom=7.5, mapbox_center = {"lat": region_center[comuna_value][1], "lon": region_center[comuna_value][0]})
+
 
         #bar graph
         df = df.dropna()
-        df = df.sort_values(by=df.columns[-2], ascending = False)[:15]
+        df = df.sort_values(by=df.columns[-2], ascending = True)
         bar_fig = go.Figure(data=(go.Bar(y = df['Comuna'], x=df[df.columns[-2]],
                                 text = df[df.columns[-2]], orientation = 'h', textposition = 'outside')),
                        layout = (go.Layout(xaxis={'showgrid':False, 'ticks':'', 'showticklabels':False}, yaxis={'showgrid':False})))
+        if comuna_value != 0:
+            bar_fig.update_layout(yaxis={'tickmode':'linear'})
 
         bar_fig.update_layout(margin={"r":0,"t":30,"l":0,"b":0}, autosize = True)
         bar_fig.update_layout(title_text = f'Casos confirmados acumulados al {df.columns[-2]}| Top Comunas')
@@ -128,7 +172,7 @@ def graph_updater(dataset_value, comuna_value):
                                         ), className = 'col s12 m12 l6'))
         graphs.append(html.Div(dcc.Graph(
                                         id = 'scatter',
-                                        figure = bar_fig,                                    
+                                        figure = bar_fig,
                                         style = {'height':'100vh'}), className='col s12 m12 l6'))
 
     if dataset_value== 'ZC':
@@ -184,24 +228,33 @@ def graph_updater(dataset_value, comuna_value):
 
     if dataset_value == 'CA':
         df = pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/input/InformeEpidemiologico/CasosActualesPorComuna.csv")
-
+        if comuna_value != 0:
+            df = df.loc[df['Codigo region'] == comuna_value]
         fig = go.Figure(go.Choroplethmapbox(geojson=geojson_comunas, locations=df.Comuna, z=df[df.columns[-1]],
                                     colorscale="Reds", zmin=0, zmax=100, showscale = False,
                                     marker_opacity=0.9, marker_line_width=0.01, featureidkey='properties.comuna'))
-        fig.update_layout(mapbox_style="light", mapbox_accesstoken=token,
-                          mapbox_zoom=3, mapbox_center = {"lat": -37.0902, "lon": -72.7129})
+        fig.update_layout(mapbox_style="light", mapbox_accesstoken=token)
         fig.update_layout(margin={"r":0,"t":30,"l":0,"b":0}, height = 700, title_text= f'Mapa Casos activos al {df.columns[-1]}')
+        #centering and zooming depending on the region
+        if comuna_value == 0:
+            fig.update_layout(mapbox_zoom=3, mapbox_center = {"lat": -37.0902, "lon": -72.7129})
+        else:
+            fig.update_layout(mapbox_zoom=7.5, mapbox_center = {"lat": region_center[comuna_value][1], "lon": region_center[comuna_value][0]})
+
 
         #bar graph
         df = df.dropna()
-        df.sort_values(by=df.columns[-1], ascending = False)
-        df = df.sort_values(by=df.columns[-1], ascending = False)[:15]
+        df = df.sort_values(by=df.columns[-1], ascending = True)
         bar_fig = go.Figure(data=(go.Bar(y = df['Comuna'], x=df[df.columns[-1]],
                             text = df[df.columns[-1]], orientation = 'h', textposition = 'outside')),
                             layout = (go.Layout(xaxis={'showgrid':False, 'ticks':'', 'showticklabels':False}, yaxis={'showgrid':False})))
 
         bar_fig.update_layout(margin={"r":0,"t":30,"l":0,"b":0}, height=700)
         bar_fig.update_layout(title_text =f'Casos activos al {df.columns[-1]}| Top Comunas')
+        if comuna_value != 0:
+            bar_fig.update_layout(yaxis={'tickmode':'linear'})
+
+
         #appending
         graphs.append(html.Div(dcc.Graph(
                                         id = 'mapa',

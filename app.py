@@ -85,9 +85,9 @@ app.layout = html.Div(children=[
     html.Div(
         className="app-header",
         children=[
-            html.Div(html.A([html.Span('Planton', style={'color': '#5c75f2', 'font-style': 'italic', 'font-weight': 'bold'}),
+            html.Div(html.A([html.Span('Plancton', style={'color': '#5c75f2', 'font-style': 'italic', 'font-weight': 'bold'}),
                       html.Span(' Andino', style={'color': '#4FD7EC', 'font-style': 'italic', 'font-weight': 'bold'}),
-                      html.Span(' spa', style={'color': 'gray', 'font-style': 'italic'})], href ='https://plancton.cl/'))
+                      html.Span(' SpA', style={'color': 'gray', 'font-style': 'italic'})], href ='https://plancton.cl/'))
                       ], style={'margin-bottom':30},
             ),
             html.H3([html.Span('CENTRO DE DATOS:', style={'font-weight': 'bold'}),
@@ -96,11 +96,13 @@ app.layout = html.Div(children=[
             html.H6('filtrar por:'),
             html.Div([
                 dcc.Dropdown(id='dataset_dropdown',
-                            options = [ {'label':'Series de tiempo', 'value':'ST'},
-                                        {'label':'Casos Confirmados Acumulados', 'value':'CC'},
+                            options = [ {'label':'Casos Confirmados Acumulados', 'value':'CC'},
                                         {'label':'Casos Activos', 'value':'CA'},
+                                        {'label':'Series de tiempo interactivas', 'value':'ST'},
                                         {'label':'Zonas en Cuarentena', 'value':'ZC'},
-                                        {'label':'Estadística', 'value':'EST'},
+                                        {'label':'Fallecidos, Críticos, UCI y respiradores', 'value':'EP'},
+                                        {'label':'Síntomas de confirmados y hospitalizados', 'value':'ES'},
+                                        #{'label':'covid19 en el Mundo', 'value':'MUND'}
                                         ],
                             value ='CC',
                             style={'margin-bottom':10},
@@ -126,7 +128,7 @@ app.layout = html.Div(children=[
     [Input('dataset_dropdown','value')]
 )
 def hide_dd_callback(value):
-    if value in ['ZC', 'EST']:
+    if value in ['ZC', 'EP','ES']:
         return {'display':'none'}
     else:
         return {'display':'block'}
@@ -335,7 +337,7 @@ def graph_updater(dataset_value, comuna_value):
                                         ), className='col s12 m12 l6'))
 
 
-    if  dataset_value == 'EST':
+    if  dataset_value == 'EP':
 
         #fallecidos
         facdf = pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto14/FallecidosCumulativo.csv")
@@ -394,6 +396,45 @@ def graph_updater(dataset_value, comuna_value):
                                         style = {'height':'60vh'}
                                         ), className='col s12 m12 l12'))
 
+    if dataset_value == 'ES':
+        #sintomas por casos confirmados
+        sintomas_conf = pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto21/SintomasCasosConfirmados.csv")
+        fig_sc=(px.pie(sintomas_conf, values=sintomas_conf.columns[-1], names='Sintomas', title="Síntomas de casos confirmados",
+            color_discrete_sequence =px.colors.sequential.RdBu))
+        fig_sc.update_traces(textposition='inside', textinfo='label+percent', hovertemplate=None)
+
+        sintomas_hosp = pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto21/SintomasHospitalizados.csv")
+        fig_sh=(px.pie(sintomas_hosp, values=sintomas_hosp.columns[-1], names='Sintomas', title="Síntomas de pacientes hospitalizados",
+            color_discrete_sequence =px.colors.sequential.RdBu))
+        fig_sh.update_traces(textposition='inside', textinfo='label+percent', hovertemplate=None)
+
+        graphs.append(html.Div(dcc.Graph(
+                                        id = 'fig_sc',
+                                        figure = fig_sc,
+                                        style = {'height':'60vh'}
+                                        ), className='col s12 m6 l6'))
+
+        graphs.append(html.Div(dcc.Graph(
+                                        id = 'fig_sh',
+                                        figure = fig_sh,
+                                        style = {'height':'60vh'}
+                                        ), className='col s12 m6 l6'))
+
+    # if dataset_value == 'MUND':
+    #     global_conf = pd.read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
+    #     global_conf = global_conf.groupby(global_conf['Country/Region']).sum()
+    #     global_conf['País'] = global_conf.index
+    #
+    #     map = px.scatter_mapbox(global_conf, lat="Lat", lon="Long", size=global_conf.columns[-2], size_max=100, zoom=1,
+    #                             color=np.log(global_conf[global_conf.columns[-2]]), color_continuous_scale='rainbow')
+    #     map.update_layout(mapbox_style="light", mapbox_accesstoken=token )
+    #     map.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, title='Casos confirmados en el mundo')
+    #
+    #     graphs.append(html.Div(dcc.Graph(
+    #                                     id = 'map_conf',
+    #                                     figure = map,
+    #                                     style = {'height':'60vh'}
+    #                                     ), className='col s12 m12 l12'))
 
 
     return graphs

@@ -172,6 +172,7 @@ def graph_updater(dataset_value, comuna_value):
                                    log_x=False, range_y=[0,max_activos], range_x=[0,max_confirmados])
         double_scatter.update_layout(margin={"r":0,"t":50,"l":0,"b":0},
                                     title_text = "Casos Confirmados vs Activos actualmente: Serie de tiempo")
+        double_scatter.layout.updatemenus[0].buttons[0].args[1]["frame"]["duration"] = 1000
 
         tasa = px.scatter(filtered_merge, x=filtered_merge.Confirmados*100000/filtered_merge.Poblacion, y="Activos", animation_frame="Fecha", animation_group="Comuna",
                                    size="Poblacion", color="Region", hover_name="Comuna", text='Comuna',
@@ -179,10 +180,13 @@ def graph_updater(dataset_value, comuna_value):
         tasa.update_layout(margin={"r":0,"t":80,"l":0,"b":0},
                             title_text = "Tasa de Incidencia (cada 100k Hab.) vs casos activos",
                             xaxis_title = 'Casos Confirmados por 100 mil habitantes')
+        tasa.layout.updatemenus[0].buttons[0].args[1]["frame"]["duration"] = 1000
 
-        simple_scatter = px.bar(merged, x="Region", y="Confirmados", color="Region",
-                          animation_frame="Fecha", animation_group="Comuna", log_y = True)
+        simple_scatter = px.scatter(merged, x="Region", y="Confirmados", color="Region",
+                  animation_frame="Fecha", animation_group="Comuna", range_y=[0,1500])
         simple_scatter.update_layout(margin={"r":0,"t":80,"l":0,"b":0}, title_text = "Caso Confirmados acumulados en el tiempo (escala logarítmica)")
+        simple_scatter.layout.updatemenus[0].buttons[0].args[1]["frame"]["duration"] = 1000
+
 
         graphs.append(html.Div(dcc.Graph(
                                         id = 'double_scatter',

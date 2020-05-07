@@ -183,7 +183,7 @@ def graph_updater(dataset_value, comuna_value):
         tasa.layout.updatemenus[0].buttons[0].args[1]["frame"]["duration"] = 1000
 
         simple_scatter = px.scatter(merged, x="Region", y="Confirmados", color="Region",
-                  animation_frame="Fecha", animation_group="Comuna", range_y=[0,1500])
+                  animation_frame="Fecha", animation_group="Comuna", range_y=[-10,1500], hover_name='Comuna')
         simple_scatter.update_layout(margin={"r":0,"t":80,"l":0,"b":0}, title_text = "Caso Confirmados acumulados en el tiempo (escala logarítmica)")
         simple_scatter.layout.updatemenus[0].buttons[0].args[1]["frame"]["duration"] = 1000
 
@@ -360,8 +360,8 @@ def graph_updater(dataset_value, comuna_value):
             data=(px.scatter(criticos_df, x='Fecha', y='Pacientes Críticos')
                  )
                             )
-        fig_crit.update_traces( mode='markers+lines')
-        fig_crit.update_layout(margin={"r":0,"t":50,"l":0,"b":0}, title_text = "Pacientes críticos")
+        fig_crit.update_traces( mode='markers+lines',hovertemplate=  'Críticos:<br>%{y}<extra></extra>')
+        fig_crit.update_layout(margin={"r":0,"t":50,"l":0,"b":0}, title_text = "Pacientes críticos", hovermode='x')
 
         #ventiladores
         ventiladores_df = pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto20/NumeroVentiladores.csv")

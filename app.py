@@ -16,6 +16,7 @@ import plotly.express as px
 external_css = ["https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/css/materialize.min.css"]
 external_js = ['https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/js/materialize.min.js']
 token = 'pk.eyJ1Ijoicml0bWFuZG90cHkiLCJhIjoiY2s3ZHJidGt0MDFjNzNmbGh5aDh4dTZ0OSJ9.-SROtN91ZvqtFpO1nGPFeg'
+api = 'https://api.covid19api.com'
 
 #df links
 
@@ -102,7 +103,7 @@ app.layout = html.Div(children=[
                                         {'label':'Zonas en Cuarentena', 'value':'ZC'},
                                         {'label':'Fallecidos, Críticos, UCI y respiradores', 'value':'EP'},
                                         {'label':'Síntomas de confirmados y hospitalizados', 'value':'ES'},
-                                        #{'label':'covid19 en el Mundo', 'value':'MUND'}
+                                        {'label':'covid19 en el Mundo', 'value':'MUND'}
                                         ],
                             value ='CC',
                             style={'margin-bottom':10},
@@ -128,7 +129,7 @@ app.layout = html.Div(children=[
     [Input('dataset_dropdown','value')]
 )
 def hide_dd_callback(value):
-    if value in ['ZC', 'EP','ES']:
+    if value in ['ZC', 'EP','ES','MUND']:
         return {'display':'none'}
     else:
         return {'display':'block'}
@@ -424,21 +425,89 @@ def graph_updater(dataset_value, comuna_value):
                                         style = {'height':'60vh'}
                                         ), className='col s12 m6 l6'))
 
-    # if dataset_value == 'MUND':
-    #     global_conf = pd.read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
-    #     global_conf = global_conf.groupby(global_conf['Country/Region']).sum()
-    #     global_conf['País'] = global_conf.index
-    #
-    #     map = px.scatter_mapbox(global_conf, lat="Lat", lon="Long", size=global_conf.columns[-2], size_max=100, zoom=1,
-    #                             color=np.log(global_conf[global_conf.columns[-2]]), color_continuous_scale='rainbow')
-    #     map.update_layout(mapbox_style="light", mapbox_accesstoken=token )
-    #     map.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, title='Casos confirmados en el mundo')
-    #
-    #     graphs.append(html.Div(dcc.Graph(
-    #                                     id = 'map_conf',
-    #                                     figure = map,
-    #                                     style = {'height':'60vh'}
-    #                                     ), className='col s12 m12 l12'))
+    if dataset_value == 'MUND':
+        import requests as rq
+        #url of the api
+        api = 'https://api.covid19api.com/summary'
+        #requesting the data
+        try:
+            data = rq.get(api).json()
+        except:
+            try:
+                data = rq.get(api).json()
+            except:
+                pass
+
+        #defining the dataframe
+        covid = pd.DataFrame(data['Countries'])
+        #date to timestamp
+        covid['Date'] =pd.to_datetime(covid['Date'])
+        #getting the population data
+        pop = pd.read_csv("data/population_by_country_2020.csv")
+        #rename country column to math covid dataframe
+        pop.rename(columns={'Country (or dependency)':'Country'}, inplace=True)
+
+        #making the map
+        text = [str(x)+ '<br>'+'Casos: '+str(f'{y:,}').replace(',','.') for x,y in zip(covid.Country,covid.TotalConfirmed)]
+
+
+        fig_mundo = go.Figure(data=go.Choropleth(
+            locations = covid.Country,
+            z = np.log10(np.array(covid.TotalConfirmed)+1),
+            text= text,
+            hoverinfo='text',
+            colorscale = 'hot_r',
+            autocolorscale=False,
+            reversescale=False,
+            marker_line_color='darkgray',
+            marker_line_width=0.5,
+            colorbar_title = 'covid19<br>Total Confirmed',
+            locationmode='country names',
+            showscale=False
+        ))
+
+        fig_mundo.update_layout(
+            margin={'t':30,'b':0,'r':0,'l':0},
+            height=700,
+            title_text=f'covid19: Confirmados totales en el mundo al {covid.Date.unique()[0].strftime("%d/%M/%Y")}',
+            geo=dict(
+                showframe=False,
+                showcoastlines=False,
+                projection_type='equirectangular'
+             )
+        #     annotations = [dict(
+        #         x=0.55,
+        #         y=0.1,
+        #         xref='paper',
+        #         yref='paper',
+        #         showarrow = False
+        #     )]
+        )
+
+        #bar Figure
+        covid = covid.dropna()
+        covid = covid.sort_values(by='TotalConfirmed', ascending = True)
+        fig_bar_world = go.Figure(data=(go.Bar(y = covid.Country, x=covid.TotalConfirmed,
+                            text = covid.TotalConfirmed, orientation = 'h', textposition = 'outside')),
+                            layout = (go.Layout(xaxis={'showgrid':False, 'ticks':'', 'showticklabels':False}, yaxis={'showgrid':False})))
+
+        fig_bar_world.update_layout(margin={"r":0,"t":30,"l":0,"b":0}, height=700)
+        #fig_bar_world.update_layout(title_text =f'Casos activos al {df.columns[-1]}| Top Comunas')
+
+        #appending
+        graphs.append(html.Div(dcc.Graph(
+                                        id = 'fig_mundo',
+                                        figure = fig_mundo,
+                                        style = {'height':'100vh'}
+                                        ), className='col s12 m12 l12'))
+        #
+        # graphs.append(html.Div(dcc.Graph(
+        #                                 id = 'fig_bar_world',
+        #                                 figure = fig_bar_world,
+        #                                 style = {'height':'100vh'}
+        #                                 ), className='col s12 m12 l4'))
+
+
 
 
     return graphs

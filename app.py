@@ -255,12 +255,12 @@ def graph_updater(dataset_value, comuna_value):
                                         id='mapa',
                                         figure=fig,
                                         style={'height':'100vh'}
-                                        ), md=6))
+                                        ), xl=6, md=12))
         graphs.append(dbc.Col(dcc.Graph(
                                         id = 'scatter',
                                         figure = bar_fig,
                                         style={'height':'100vh'}
-                                        ), md=6))
+                                        ), xl=6, md=12))
 
     if dataset_value== 'ZC':
         import requests
@@ -307,11 +307,11 @@ def graph_updater(dataset_value, comuna_value):
         graphs.append(dbc.Col(dcc.Graph(
                                         id = 'table',
                                         figure = table
-                                        ), md=6))
+                                        ), xl=6, md=12))
         graphs.append(dbc.Col(dcc.Graph(
                                         id = 'mapa',
                                         figure = map
-                                        ), md=6))
+                                        ), xl=6, md=12))
 
     if dataset_value == 'CA':
         df = pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/input/InformeEpidemiologico/CasosActualesPorComuna.csv")
@@ -347,12 +347,12 @@ def graph_updater(dataset_value, comuna_value):
                                         id = 'mapa',
                                         figure = fig,
                                         style = {'height':'100vh'}
-                                        ),md=6))
+                                        ),xl=6, md=12))
         graphs.append(dbc.Col(dcc.Graph(
                                         id = 'scatter',
                                         figure = bar_fig,
                                         style = {'height':'100vh'}
-                                        ), md=6))
+                                        ), xl=6, md=12))
 
 
     if  dataset_value == 'EP':
@@ -430,13 +430,13 @@ def graph_updater(dataset_value, comuna_value):
                                         id = 'fig_sc',
                                         figure = fig_sc,
                                         style = {'height':'60vh'}
-                                        ), md=6))
+                                        ), xl=12, md=6))
 
         graphs.append(dbc.Col(dcc.Graph(
                                         id = 'fig_sh',
                                         figure = fig_sh,
                                         style = {'height':'60vh'}
-                                        ), md=6))
+                                        ), xl=12, md=6))
 
     if dataset_value == 'MUND':
         import requests as rq

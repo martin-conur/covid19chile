@@ -6,6 +6,7 @@ import numpy as np
 
 #dash
 import dash
+import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
@@ -13,8 +14,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 
 #links and references
-external_css = ["https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/css/materialize.min.css"]
-external_js = ['https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/js/materialize.min.js']
+
 token = 'pk.eyJ1Ijoicml0bWFuZG90cHkiLCJhIjoiY2s3ZHJidGt0MDFjNzNmbGh5aDh4dTZ0OSJ9.-SROtN91ZvqtFpO1nGPFeg'
 api = 'https://api.covid19api.com'
 
@@ -74,7 +74,7 @@ region_center = {11: (-75.50096893, -48.60930634),
                  1: (-69.38311566842106, -20.137420001842106),
                  5: (-71.12692737575001, -32.930289125250006)}
 #APP
-app = dash.Dash(__name__, external_stylesheets=external_css, external_scripts=external_js)
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
 
 server = app.server
 #supress callbacks exceptions
@@ -82,7 +82,7 @@ app.config.suppress_callback_exceptions = True
 
 app.title = "Covidatos"
 #the layout
-app.layout = html.Div(children=[
+app.layout = dbc.Container([
     html.Div(
         className="app-header",
         children=[
@@ -95,32 +95,37 @@ app.layout = html.Div(children=[
                      html.Span(' covid19 en Chile', style={'font-style': 'italic'})], style={'margin-bottom':30}),
 
             html.H6('filtrar por:'),
-            html.Div([
-                dcc.Dropdown(id='dataset_dropdown',
-                            options = [ {'label':'Casos Confirmados Acumulados', 'value':'CC'},
-                                        {'label':'Casos Activos', 'value':'CA'},
-                                        {'label':'Series de tiempo interactivas', 'value':'ST'},
-                                        {'label':'Zonas en Cuarentena', 'value':'ZC'},
-                                        {'label':'Fallecidos, Críticos, UCI y respiradores', 'value':'EP'},
-                                        {'label':'Síntomas de confirmados y hospitalizados', 'value':'ES'},
-                                        {'label':'covid19 en el Mundo', 'value':'MUND'}
-                                        ],
-                            value ='CC',
-                            style={'margin-bottom':10},
-                            className = 'col s12 m12 l6'),
-                dcc.Dropdown(
-                            id='comuna_dropdown',
-                            options = [
-                                {'label':region_names[i], 'value':i} for i in range(17)],
-                            value = 0,
-                            className = 'col s12 m12 l6',
-                            style={'margin-bottom':10, 'display':'none'})], className ='row'),
-            html.Div(children= html.Div(id ='graphs'),className='row'),
+            dbc.Row(
+                dbc.Col(
+                [
+                    dcc.Dropdown(id='dataset_dropdown',
+                                options = [ {'label':'Casos Confirmados Acumulados', 'value':'CC'},
+                                            {'label':'Casos Activos', 'value':'CA'},
+                                            {'label':'Series de tiempo interactivas', 'value':'ST'},
+                                            {'label':'Zonas en Cuarentena', 'value':'ZC'},
+                                            {'label':'Fallecidos, Críticos, UCI y respiradores', 'value':'EP'},
+                                            {'label':'Síntomas de confirmados y hospitalizados', 'value':'ES'},
+                                            {'label':'covid19 en el Mundo', 'value':'MUND'}
+                                            ],
+                                value ='CC',
+                                style={'margin-bottom':10}),
+                    dcc.Dropdown(
+                                id='comuna_dropdown',
+                                options = [{'label':region_names[i], 'value':i} for i in range(17)],
+                                value = 0,
+                                style={'margin-bottom':10, 'display':'none'}
+                                )
+                    ]
+                )
+            ),
+
+            dbc.Row(children=[],id ='graphs'),
+            html.Hr(),
             html.Footer("La fuente de los datos corresponde al repositorio del Ministerio de Ciencias y los informes Epistemiológicos"),
             html.Hr(),
             html.Footer(["Creado por ", html.A('@ritmandotpy', href='https://twitter.com/RitmanDotpy')]),
             html.Footer(" ")
-                 ],style={'width':'98%','margin-left':10,'margin-right':10,'max-width':50000, 'margin-buttom':20, 'heigth':'120vh', 'max-height':'140vh'})
+                 ], fluid=True)
 
 
 #zonas de cuarentena callback
@@ -189,22 +194,22 @@ def graph_updater(dataset_value, comuna_value):
         simple_scatter.layout.updatemenus[0].buttons[0].args[1]["frame"]["duration"] = 1000
 
 
-        graphs.append(html.Div(dcc.Graph(
+        graphs.append(dbc.Col(dcc.Graph(
                                         id = 'double_scatter',
                                         figure = double_scatter,
                                         style = {'height':'100vh'}
-                                        ), className = 'col s12 m12 l12'))
+                                        ), md=12))
 
-        graphs.append(html.Div(dcc.Graph(
+        graphs.append(dbc.Col(dcc.Graph(
                                         id = 'tasa',
                                         figure = tasa,
                                         style = {'height':'100vh'}
-                                        ), className = 'col s12 m12 l12'))
+                                        ), md=12))
 
-        graphs.append(html.Div(dcc.Graph(
+        graphs.append(dbc.Col(dcc.Graph(
                                         id = 'simple_scatter',
                                         figure = simple_scatter,
-                                        style = {'height':'100vh'}), className='col s12 m12 l12'))
+                                        style = {'height':'100vh'}), md=12))
 
 
 
@@ -218,7 +223,7 @@ def graph_updater(dataset_value, comuna_value):
                                     colorscale="Reds", zmin=0, zmax=100, showscale = False,
                                     marker_opacity=0.9, marker_line_width=0.01, featureidkey='properties.comuna'))
         fig.update_layout(mapbox_style="light", mapbox_accesstoken=token, autosize = True)
-        fig.update_layout(margin={"r":0,"t":30,"l":0,"b":0}, title_text = f"Casos confirmados acumulados al {df.columns[-2]}")
+        fig.update_layout(margin={"r":0,"t":45,"l":0,"b":0}, title_text = f"Casos confirmados acumulados al {df.columns[-2]}")
 
         #centering and zooming depending on the region
         if comuna_value == 0:
@@ -236,18 +241,19 @@ def graph_updater(dataset_value, comuna_value):
         if comuna_value != 0:
             bar_fig.update_layout(yaxis={'tickmode':'linear'})
 
-        bar_fig.update_layout(margin={"r":0,"t":30,"l":0,"b":0}, autosize = True)
+        bar_fig.update_layout(margin={"r":0,"t":45,"l":0,"b":0}, autosize = True)
         bar_fig.update_layout(title_text = f'Casos confirmados acumulados al {df.columns[-2]}| Top Comunas')
 
-        graphs.append(html.Div(dcc.Graph(
-                                        id = 'mapa',
-                                        figure = fig,
-                                        style = {'height':'100vh'}
-                                        ), className = 'col s12 m12 l6'))
-        graphs.append(html.Div(dcc.Graph(
+        graphs.append(dbc.Col(dcc.Graph(
+                                        id='mapa',
+                                        figure=fig,
+                                        style={'height':'100vh'}
+                                        ), md=6))
+        graphs.append(dbc.Col(dcc.Graph(
                                         id = 'scatter',
                                         figure = bar_fig,
-                                        style = {'height':'100vh'}), className='col s12 m12 l6'))
+                                        style={'height':'100vh'}
+                                        ), md=6))
 
     if dataset_value== 'ZC':
         import requests
@@ -279,7 +285,7 @@ def graph_updater(dataset_value, comuna_value):
                                 cuarentena_df['Fecha_Termino'], cuarentena_df['Detalle']],
                       align = 'left'))
         ])
-        table.update_layout(margin={"r":10,"t":30,"l":0,"b":20}, height = 700, title = 'Zonas en Cuarentena')
+        table.update_layout(margin={"r":10,"t":45,"l":0,"b":20}, height = 700, title = 'Zonas en Cuarentena')
         #table.update_layout(plot_bgcolor =plt_background, paper_bgcolor=plt_background)
 
         #quarentine map
@@ -288,17 +294,17 @@ def graph_updater(dataset_value, comuna_value):
         map = px.scatter_mapbox(cuarentena_df, lat="latitude", lon="longitude",
                                 size= 'Estado',size_max=40, zoom=2, text = 'Nombre')
         map.update_layout(mapbox_style = 'light',mapbox_zoom=3.1, mapbox_center = {"lat": -36.8, "lon": -73.5}, title_text='Mapa Cuarentena')
-        map.update_layout(margin={"r":10,"t":30,"l":0,"b":0}, height = 700)
+        map.update_layout(margin={"r":10,"t":45,"l":0,"b":0}, height = 700)
         #map.update_layout(plot_bgcolor =plt_background, paper_bgcolor=plt_background)
 
-        graphs.append(html.Div(dcc.Graph(
+        graphs.append(dbc.Col(dcc.Graph(
                                         id = 'table',
                                         figure = table
-                                        ), className = 'col s12 m12 l7'))
-        graphs.append(html.Div(dcc.Graph(
+                                        ), md=6))
+        graphs.append(dbc.Col(dcc.Graph(
                                         id = 'mapa',
                                         figure = map
-                                        ), className = 'col s12 m12 l5'))
+                                        ), md=6))
 
     if dataset_value == 'CA':
         df = pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/input/InformeEpidemiologico/CasosActualesPorComuna.csv")
@@ -308,7 +314,7 @@ def graph_updater(dataset_value, comuna_value):
                                     colorscale="Reds", zmin=0, zmax=100, showscale = False,
                                     marker_opacity=0.9, marker_line_width=0.01, featureidkey='properties.comuna'))
         fig.update_layout(mapbox_style="light", mapbox_accesstoken=token)
-        fig.update_layout(margin={"r":0,"t":30,"l":0,"b":0}, height = 700, title_text= f'Mapa Casos activos al {df.columns[-1]}')
+        fig.update_layout(margin={"r":0,"t":45,"l":0,"b":0}, height = 700, title_text= f'Mapa Casos activos al {df.columns[-1]}')
         #centering and zooming depending on the region
         if comuna_value == 0:
             fig.update_layout(mapbox_zoom=3, mapbox_center = {"lat": -37.0902, "lon": -72.7129})
@@ -323,23 +329,23 @@ def graph_updater(dataset_value, comuna_value):
                             text = df[df.columns[-1]], orientation = 'h', textposition = 'outside')),
                             layout = (go.Layout(xaxis={'showgrid':False, 'ticks':'', 'showticklabels':False}, yaxis={'showgrid':False})))
 
-        bar_fig.update_layout(margin={"r":0,"t":30,"l":0,"b":0}, height=700)
+        bar_fig.update_layout(margin={"r":0,"t":45,"l":0,"b":0}, height=700)
         bar_fig.update_layout(title_text =f'Casos activos al {df.columns[-1]}| Top Comunas')
         if comuna_value != 0:
             bar_fig.update_layout(yaxis={'tickmode':'linear'})
 
 
         #appending
-        graphs.append(html.Div(dcc.Graph(
+        graphs.append(dbc.Col(dcc.Graph(
                                         id = 'mapa',
                                         figure = fig,
                                         style = {'height':'100vh'}
-                                        ), className = 'col s12 m12 l6'))
-        graphs.append(html.Div(dcc.Graph(
+                                        ),md=6))
+        graphs.append(dbc.Col(dcc.Graph(
                                         id = 'scatter',
                                         figure = bar_fig,
                                         style = {'height':'100vh'}
-                                        ), className='col s12 m12 l6'))
+                                        ), md=6))
 
 
     if  dataset_value == 'EP':
@@ -379,27 +385,27 @@ def graph_updater(dataset_value, comuna_value):
         fig_uci.update_traces(mode='markers+lines', hovertemplate=  '%{text}<br> %{y}<extra></extra>')
         fig_uci.update_layout(margin={"r":0,"t":50,"l":0,"b":0}, title_text = "Pacientes en UCI por regiones", hovermode='x')
 
-        graphs.append(html.Div(dcc.Graph(
+        graphs.append(dbc.Col(dcc.Graph(
                                         id = 'fig_fall',
                                         figure = fig_fall,
                                         style = {'height':'60vh'}
-                                        ), className='col s12 m12 l12'))
+                                        ), md=12))
 
-        graphs.append(html.Div(dcc.Graph(
+        graphs.append(dbc.Col(dcc.Graph(
                                         id = 'fig_crit',
                                         figure = fig_crit,
                                         style = {'height':'60vh'}
-                                        ), className='col s12 m12 l12'))
-        graphs.append(html.Div(dcc.Graph(
+                                        ), md=12))
+        graphs.append(dbc.Col(dcc.Graph(
                                         id = 'fig_ven',
                                         figure = fig_ven,
                                         style = {'height':'60vh'}
-                                        ), className='col s12 m12 l12'))
-        graphs.append(html.Div(dcc.Graph(
+                                        ), md=12))
+        graphs.append(dbc.Col(dcc.Graph(
                                         id = 'fig_uci',
                                         figure = fig_uci,
                                         style = {'height':'60vh'}
-                                        ), className='col s12 m12 l12'))
+                                        ), md=12))
 
     if dataset_value == 'ES':
         #sintomas por casos confirmados
@@ -413,17 +419,17 @@ def graph_updater(dataset_value, comuna_value):
             color_discrete_sequence =px.colors.sequential.RdBu))
         fig_sh.update_traces(textposition='inside', textinfo='label+percent', hovertemplate=None)
 
-        graphs.append(html.Div(dcc.Graph(
+        graphs.append(dbc.Col(dcc.Graph(
                                         id = 'fig_sc',
                                         figure = fig_sc,
                                         style = {'height':'60vh'}
-                                        ), className='col s12 m6 l6'))
+                                        ), md=6))
 
-        graphs.append(html.Div(dcc.Graph(
+        graphs.append(dbc.Col(dcc.Graph(
                                         id = 'fig_sh',
                                         figure = fig_sh,
                                         style = {'height':'60vh'}
-                                        ), className='col s12 m6 l6'))
+                                        ), md=6))
 
     if dataset_value == 'MUND':
         import requests as rq
@@ -469,7 +475,7 @@ def graph_updater(dataset_value, comuna_value):
         fig_mundo.update_layout(
             margin={'t':30,'b':0,'r':0,'l':0},
             height=700,
-            title_text=f'covid19: Confirmados totales en el mundo al {covid.Date.unique()[0].strftime("%d/%m/%Y")}',
+            title_text=f'covid19: Confirmados totales en el mundo al {covid.Date.unique()[0].strftime("%d/%M/%Y")}',
             geo=dict(
                 showframe=False,
                 showcoastlines=False,
@@ -495,11 +501,11 @@ def graph_updater(dataset_value, comuna_value):
         #fig_bar_world.update_layout(title_text =f'Casos activos al {df.columns[-1]}| Top Comunas')
 
         #appending
-        graphs.append(html.Div(dcc.Graph(
+        graphs.append(dbc.Col(dcc.Graph(
                                         id = 'fig_mundo',
                                         figure = fig_mundo,
                                         style = {'height':'100vh'}
-                                        ), className='col s12 m12 l12'))
+                                        ), md=12))
         #
         # graphs.append(html.Div(dcc.Graph(
         #                                 id = 'fig_bar_world',

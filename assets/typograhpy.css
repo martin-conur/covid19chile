@@ -1,11 +1,9 @@
 body {
-    font-family: arial;
     background-color: white;
     color:black;
 }
 h1, h2, h3, h4, h5 {
     color: #5c75f2;
-    font-family: arial;
 
 }
 h6 {

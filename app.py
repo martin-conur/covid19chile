@@ -469,7 +469,7 @@ def graph_updater(dataset_value, comuna_value):
         fig_mundo.update_layout(
             margin={'t':30,'b':0,'r':0,'l':0},
             height=700,
-            title_text=f'covid19: Confirmados totales en el mundo al {covid.Date.unique()[0].strftime("%d/%M/%Y")}',
+            title_text=f'covid19: Confirmados totales en el mundo al {covid.Date.unique()[0].strftime("%d/%m/%Y")}',
             geo=dict(
                 showframe=False,
                 showcoastlines=False,

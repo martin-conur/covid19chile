@@ -96,27 +96,34 @@ app.layout = dbc.Container([
 
             html.H6('filtrar por:'),
             dbc.Row(
-                dbc.Col(
                 [
-                    dcc.Dropdown(id='dataset_dropdown',
-                                options = [ {'label':'Casos Confirmados Acumulados', 'value':'CC'},
-                                            {'label':'Casos Activos', 'value':'CA'},
-                                            {'label':'Series de tiempo interactivas', 'value':'ST'},
-                                            {'label':'Zonas en Cuarentena', 'value':'ZC'},
-                                            {'label':'Fallecidos, Críticos, UCI y respiradores', 'value':'EP'},
-                                            {'label':'Síntomas de confirmados y hospitalizados', 'value':'ES'},
-                                            {'label':'covid19 en el Mundo', 'value':'MUND'}
-                                            ],
-                                value ='CC',
-                                style={'margin-bottom':10}),
-                    dcc.Dropdown(
-                                id='comuna_dropdown',
-                                options = [{'label':region_names[i], 'value':i} for i in range(17)],
-                                value = 0,
-                                style={'margin-bottom':10, 'display':'none'}
-                                )
-                    ]
-                )
+                    dbc.Col(
+                        dcc.Dropdown(id='dataset_dropdown',
+                                    options = [ {'label':'Casos Confirmados Acumulados', 'value':'CC'},
+                                                {'label':'Casos Activos', 'value':'CA'},
+                                                {'label':'Series de tiempo interactivas', 'value':'ST'},
+                                                {'label':'Zonas en Cuarentena', 'value':'ZC'},
+                                                {'label':'Fallecidos, Críticos, UCI y respiradores', 'value':'EP'},
+                                                {'label':'Síntomas de confirmados y hospitalizados', 'value':'ES'},
+                                                {'label':'covid19 en el Mundo', 'value':'MUND'}
+                                                ],
+                                    value ='CC',
+                                    style={'margin-bottom':10}
+                                    ),
+                                    lg=6
+                            ),
+                    dbc.Col(
+
+                        dcc.Dropdown(
+                                    id='comuna_dropdown',
+                                    options = [{'label':region_names[i], 'value':i} for i in range(17)],
+                                    value = 0,
+                                    style={'margin-bottom':10, 'display':'none'}
+                                    ),
+                                    lg=6
+
+                    )
+                ]
             ),
 
             dbc.Row(children=[],id ='graphs'),
@@ -197,19 +204,19 @@ def graph_updater(dataset_value, comuna_value):
         graphs.append(dbc.Col(dcc.Graph(
                                         id = 'double_scatter',
                                         figure = double_scatter,
-                                        style = {'height':'100vh'}
+                                        style = {'height':'80vh'}
                                         ), md=12))
 
         graphs.append(dbc.Col(dcc.Graph(
                                         id = 'tasa',
                                         figure = tasa,
-                                        style = {'height':'100vh'}
+                                        style = {'height':'80vh'}
                                         ), md=12))
 
         graphs.append(dbc.Col(dcc.Graph(
                                         id = 'simple_scatter',
                                         figure = simple_scatter,
-                                        style = {'height':'100vh'}), md=12))
+                                        style = {'height':'80vh'}), md=12))
 
 
 

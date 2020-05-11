@@ -1,6 +1,7 @@
 body {
     background-color: white;
     color:black;
+    font-size: 15px
 }
 h1, h2, h3, h4, h5 {
     color: #5c75f2;
@@ -9,6 +10,15 @@ h1, h2, h3, h4, h5 {
 h6 {
   color: gray;
   font-style: italic;
+
+}
+/* Increase all font sizes on mobile */
+@media (max-width: 767px) {
+
+body {
+/* default is 1rem or 16px */
+font-size: 25px;
+}
 
 }
 

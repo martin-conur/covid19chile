@@ -108,7 +108,7 @@ app.layout = dbc.Container([
                                                 {'label':'covid19 en el Mundo', 'value':'MUND'}
                                                 ],
                                     value ='CC',
-                                    style={'margin-bottom':10}
+                                    style={'margin-bottom':10, 'font-size':'3vh'}
                                     ),
                                     lg=6
                             ),
@@ -118,7 +118,7 @@ app.layout = dbc.Container([
                                     id='comuna_dropdown',
                                     options = [{'label':region_names[i], 'value':i} for i in range(17)],
                                     value = 0,
-                                    style={'margin-bottom':10, 'display':'none'}
+                                    style={'margin-bottom':10, 'display':'none', 'font-size':'3vh'}
                                     ),
                                     lg=6
 
@@ -144,7 +144,7 @@ def hide_dd_callback(value):
     if value in ['ZC', 'EP','ES','MUND']:
         return {'display':'none'}
     else:
-        return {'display':'block'}
+        return {'display':'block', 'font-size':'3vh', 'margin-bottom':10}
 
 #graphs callbacks
 @app.callback(

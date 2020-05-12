@@ -430,13 +430,13 @@ def graph_updater(dataset_value, comuna_value):
                                         id = 'fig_sc',
                                         figure = fig_sc,
                                         style = {'height':'60vh'}
-                                        ), xl=12, md=6))
+                                        ), xl=6, md=12))
 
         graphs.append(dbc.Col(dcc.Graph(
                                         id = 'fig_sh',
                                         figure = fig_sh,
                                         style = {'height':'60vh'}
-                                        ), xl=12, md=6))
+                                        ), xl=6, md=12))
 
     if dataset_value == 'MUND':
         import requests as rq
@@ -482,7 +482,7 @@ def graph_updater(dataset_value, comuna_value):
         fig_mundo.update_layout(
             margin={'t':30,'b':0,'r':0,'l':0},
             height=700,
-            title_text=f'covid19: Confirmados totales en el mundo al {covid.Date.unique()[0].strftime("%d/%M/%Y")}',
+            title_text=f'covid19: Confirmados totales en el mundo al {covid.Date.unique()[0].strftime("%d/%m/%Y")}',
             geo=dict(
                 showframe=False,
                 showcoastlines=False,

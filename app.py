@@ -55,7 +55,7 @@ region_names = {15: 'Arica y Parinacota',
                  10: 'Los Lagos',
                  11: 'Aysén',
                  12: 'Magallanes',
-                 0:'Todas las regiones'}
+                 0:'Todas las comunas'}
 
 region_center = {11: (-75.50096893, -48.60930634),
                  2: (-69.30046955072464, -23.513314398840592),
@@ -101,7 +101,8 @@ app.layout = dbc.Container([
                         dcc.Dropdown(id='dataset_dropdown',
                                     options = [ {'label':'Casos Confirmados Acumulados', 'value':'CC'},
                                                 {'label':'Casos Activos', 'value':'CA'},
-                                                {'label':'Series de tiempo interactivas', 'value':'ST'},
+                                                {'label':'Series de tiempo Regiones', 'value':'STR'},
+                                                {'label':'Series de tiempo Comunas', 'value':'ST'},
                                                 {'label':'Zonas en Cuarentena', 'value':'ZC'},
                                                 {'label':'Fallecidos, Críticos, UCI y respiradores', 'value':'EP'},
                                                 {'label':'Síntomas de confirmados y hospitalizados', 'value':'ES'},
@@ -122,6 +123,17 @@ app.layout = dbc.Container([
                                     ),
                                     lg=6
 
+                    ),
+                    dcc.RadioItems(
+                        options=[
+                            {'label':'Regiones', 'value':'Regiones'},
+                            {'label':'Comunas', 'value':'Comunas'}
+                        ],
+                        value='Regiones',
+                        labelStyle={'display': 'inline-block'},
+                        style={'margin-left':20},
+                        inputStyle={"margin-left": 10},
+                        id="radio1"
                     )
                 ]
             ),
@@ -134,14 +146,25 @@ app.layout = dbc.Container([
             html.Footer(" ")
                  ], fluid=True)
 
+#radioitem callback
+@app.callback(
+    Output("radio1","style"),
+    [Input("dataset_dropdown", "value")]
+)
+def show_radio(value):
+    if value == "CC":
+        return {'display':'block', 'margin-left':20}
+    else:
+        return {'display':'none'}
 
 #zonas de cuarentena callback
 @app.callback(
     Output('comuna_dropdown','style'),
-    [Input('dataset_dropdown','value')]
+    [Input('dataset_dropdown','value'),
+    Input('radio1', 'value')]
 )
-def hide_dd_callback(value):
-    if value in ['ZC', 'EP','ES','MUND']:
+def hide_dd_callback(value1, value2):
+    if value1 in ['ZC', 'EP','ES','MUND', 'STR'] or value2 == "Regiones":
         return {'display':'none'}
     else:
         return {'display':'block', 'margin-bottom':10}
@@ -150,11 +173,93 @@ def hide_dd_callback(value):
 @app.callback(
     Output('graphs', 'children'),
     [Input('dataset_dropdown', 'value'),
-     Input('comuna_dropdown', 'value')]
+     Input('comuna_dropdown', 'value'),
+     Input("radio1", "value")]
 )
 
-def graph_updater(dataset_value, comuna_value):
+def graph_updater(dataset_value, comuna_value, radio_value):
     graphs = []
+
+    if dataset_value == 'STR':
+        #reading the datagrames
+        regdf=pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto3/CasosTotalesCumulativo.csv")
+        regnv=pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto13/CasosNuevosCumulativo.csv")
+        #melting dates
+        df = regdf.melt(id_vars=["Region"], var_name="Fecha", value_name="Confirmados")
+        df2 = regnv.melt(id_vars=["Region"], var_name="Fecha", value_name = "Nuevos")
+        #merging dataframes
+        merge_df = df.merge(df2)
+        #adding log columns
+        with np.errstate(invalid='ignore'):
+            merge_df["log10 (Confirmados)"]= np.log10(merge_df["Confirmados"])
+            merge_df["log10 (Nuevos)"]= np.log10(merge_df["Nuevos"])
+        #formatting replacing -inf for zeros
+        merge_df["log10 (Confirmados)"].loc[merge_df["log10 (Confirmados)"]==-np.inf]=0
+        merge_df["log10 (Nuevos)"].loc[merge_df["log10 (Nuevos)"]==-np.inf]=0
+
+        fig = px.scatter(merge_df, x="log10 (Confirmados)", y="log10 (Nuevos)", animation_frame="Fecha", animation_group="Region",
+           color="Region", range_x=[0,5], range_y=[-0.2,4], text="Region", hover_data=["Confirmados", "Nuevos", "Region"])
+        fig.update_layout(margin={"r":0,"t":50,"l":0,"b":0}, title="Serie de tiempo regional: Confirmados vs Nuevos (log)")
+        fig.update_layout(
+            xaxis = dict(
+                tickmode = 'array',
+                tickvals = [1, 2, 3, 4, 5],
+                ticktext = ['10', '100', '1k', '10k', '100k']
+            ),
+            yaxis = dict(
+                tickmode = 'array',
+                tickvals = [1, 2, 3, 4],
+                ticktext = ['10', '100', '1k', '10k']
+            )
+        )
+        graphs.append(dbc.Col(dcc.Graph(
+                                        id = 'serie-tiempo-region',
+                                        figure = fig,
+                                        style = {'height':'80vh'}
+                                        ), xl=12, md=12))
+
+
+
+
+    if dataset_value == 'CC' and radio_value == "Regiones":
+        regdf=pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto3/CasosTotalesCumulativo.csv")
+        with open("geojson/regiones.geojson", "rb") as geojsonfile:
+            regiones_geojson = json.load(geojsonfile, encoding='utf-8-sig')
+
+        fig = go.Figure(go.Choroplethmapbox(geojson=regiones_geojson, locations=regdf.Region, z=regdf[regdf.columns[-1]],
+                            colorscale="Reds", zmin=0, zmax=1000, showscale = False,
+                            marker_opacity=0.9, marker_line_width=0.6, featureidkey='properties.region'))
+        fig.update_layout(mapbox_style="light", mapbox_accesstoken=token, autosize = True)
+
+        fig.update_layout(margin={"r":0,"t":45,"l":0,"b":0}, title_text = f"Casos confirmados acumulados al {regdf.columns[-1]}")
+        fig.update_layout(mapbox_zoom=3, mapbox_center = {"lat": -37.0902, "lon": -72.7129})
+
+        df = regdf.sort_values(by=regdf.columns[-1], ascending = True)
+        bar_fig = go.Figure(data=(go.Bar(y = df['Region'], x=df[df.columns[-1]], orientation = 'h', text=df[df.columns[-1]],
+                                         textposition = 'outside', marker={'color': np.log(df[df.columns[-1]]),'colorscale': 'Reds'}
+                                         )
+                                  ),
+                       layout = (go.Layout(xaxis={'showgrid':False, 'ticks':'', 'showticklabels':False},
+                                           yaxis={'showgrid':False}
+                                           )
+                                )
+                            )
+
+        bar_fig.update_layout(margin={"r":0,"t":45,"l":0,"b":0}, autosize = True)
+        bar_fig.update_layout(title_text = f'Casos confirmados acumulados al {df.columns[-2]}| Top Comunas')
+
+        graphs.append(dbc.Col(dcc.Graph(
+                                        id = 'mapa_ragional',
+                                        figure = fig,
+                                        style={'height':'100vh'}
+                                        ), xl=6, md=12))
+
+        graphs.append(dbc.Col(dcc.Graph(
+                                        id = 'regional_bar',
+                                        figure = bar_fig,
+                                        style={'height':'100vh'}
+                                        ), xl=6, md=12))
+
 
     if dataset_value == 'ST':
         activos_df = pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/input/InformeEpidemiologico/CasosActualesPorComuna.csv")
@@ -220,7 +325,7 @@ def graph_updater(dataset_value, comuna_value):
 
 
 
-    if dataset_value == 'CC':
+    if dataset_value == 'CC' and radio_value == "Comunas":
 
         df = pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/input/InformeEpidemiologico/CasosAcumuladosPorComuna.csv")
         if comuna_value != 0:

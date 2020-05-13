@@ -164,7 +164,9 @@ def show_radio(value):
     Input('radio1', 'value')]
 )
 def hide_dd_callback(value1, value2):
-    if value1 in ['ZC', 'EP','ES','MUND', 'STR'] or value2 == "Regiones":
+    if value1 in ['ZC', 'EP','ES','MUND', 'STR']:
+        return {'display':'none'}
+    elif value1 =='CC' and value2 == "Regiones":
         return {'display':'none'}
     else:
         return {'display':'block', 'margin-bottom':10}

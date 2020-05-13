@@ -246,7 +246,7 @@ def graph_updater(dataset_value, comuna_value, radio_value):
                             )
 
         bar_fig.update_layout(margin={"r":0,"t":45,"l":0,"b":0}, autosize = True)
-        bar_fig.update_layout(title_text = f'Casos confirmados acumulados al {df.columns[-2]}| Top Comunas')
+        bar_fig.update_layout(title_text = f'Casos confirmados acumulados al {df.columns[-1]}| Top Comunas')
 
         graphs.append(dbc.Col(dcc.Graph(
                                         id = 'mapa_ragional',

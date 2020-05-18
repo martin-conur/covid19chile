@@ -73,6 +73,34 @@ region_center = {11: (-75.50096893, -48.60930634),
                  13: (-70.67288351031247, -33.61857366562501),
                  1: (-69.38311566842106, -20.137420001842106),
                  5: (-71.12692737575001, -32.930289125250006)}
+
+activos_df = pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/input/InformeEpidemiologico/CasosActualesPorComuna.csv")
+confirmados_df =  pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/input/InformeEpidemiologico/CasosAcumuladosPorComuna.csv")
+confirmados_df = confirmados_df.loc[:,list(activos_df.columns)]
+#melting
+activos = activos_df.melt(id_vars=["Region","Codigo region", "Comuna","Codigo comuna", "Poblacion"],
+                          var_name="Fecha",
+                          value_name="Activos")
+
+confirmados = confirmados_df.melt(id_vars=["Region","Codigo region", "Comuna","Codigo comuna", "Poblacion"],
+                                  var_name="Fecha",
+                                  value_name="Confirmados")
+df = confirmados.merge(activos).dropna()
+df["Fecha"] = pd.to_datetime(df["Fecha"])
+#transform every unique date to a number
+numdate= [x for x in range(len(df['Fecha'].unique()))]
+dates = df['Fecha'].unique()
+
+dff = df[df["Fecha"]== dates[-1]]
+day = pd.to_datetime(dates[-1]).strftime("%d")
+month = pd.to_datetime(dates[-1]).strftime("%B")
+din_fig = go.Figure(go.Choroplethmapbox(geojson=geojson_comunas, locations=dff.Comuna, z=dff["Confirmados"],
+                                    colorscale="Reds", zmin=0, zmax=200, showscale = False, customdata=dff.Comuna,
+                                    marker_opacity=0.9, marker_line_width=0.01, featureidkey='properties.comuna'))
+din_fig.update_layout(mapbox_style="light", mapbox_accesstoken=token, autosize = True)
+din_fig.update_layout(margin={"r":0,"t":45,"l":0,"b":0}, title_text = f"Casos confirmados acumulados al {day} de {month}")
+din_fig.update_layout(mapbox_zoom=3, mapbox_center = {"lat": -37.0902, "lon": -72.7129})
+
 #APP
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
 
@@ -99,8 +127,7 @@ app.layout = dbc.Container([
                 [
                     dbc.Col(
                         dcc.Dropdown(id='dataset_dropdown',
-                                    options = [ {'label':'Casos Confirmados Acumulados', 'value':'CC'},
-                                                {'label':'Casos Activos', 'value':'CA'},
+                                    options = [ {'label':'Casos Confirmados y Activos', 'value':'CC'},
                                                 {'label':'Series de tiempo Regiones', 'value':'STR'},
                                                 {'label':'Series de tiempo Comunas', 'value':'ST'},
                                                 {'label':'Zonas en Cuarentena', 'value':'ZC'},
@@ -129,7 +156,7 @@ app.layout = dbc.Container([
                             {'label':'Regiones', 'value':'Regiones'},
                             {'label':'Comunas', 'value':'Comunas'}
                         ],
-                        value='Regiones',
+                        value='Comunas',
                         labelStyle={'display': 'inline-block'},
                         style={'margin-left':20},
                         inputStyle={"margin-left": 10},
@@ -138,13 +165,67 @@ app.layout = dbc.Container([
                 ]
             ),
 
-            dbc.Row(children=[],id ='graphs'),
+            dbc.Row(
+                id='graphs',
+                children = [
+                    dbc.Col(
+                        dcc.Graph(
+                            figure=din_fig,
+                            id="map-graph",
+                            hoverData={'points':[{"customdata": "Santiago"}]},
+                            style={'height':'80vh'}
+                        ),
+                        xl=6, md=12
+                    ),
+                    dbc.Col(
+                        [
+                            dcc.Graph(id="graph-confirmados", style={'height':'40vh'}),
+                            dcc.Graph(id='graph-activos', style={'height':'40vh'})
+                        ],
+                        xl=6, md=12
+                    )
+                ]
+            ),
             html.Hr(),
             html.Footer("La fuente de los datos corresponde al repositorio del Ministerio de Ciencias y los informes Epistemiológicos"),
             html.Hr(),
             html.Footer(["Creado por ", html.A('@ritmandotpy', href='https://twitter.com/RitmanDotpy')]),
             html.Footer(" ")
                  ], fluid=True)
+
+def time_series(dff, title, y):
+    return {
+        'data': [dict(
+            x=dff["Fecha"],
+            y=dff[y],
+            mode='lines+markers'
+        )],
+        'layout': {
+            'xaxis': {'showgrid':False},
+            'yaxis': {'type': 'linear'},
+            'title':title,
+            'margin':{"r":0,"t":30,"l":40,"b":30}
+            #'annotations':[ {'text':title}]
+        }
+    }
+
+@app.callback(
+        [Output('graph-confirmados', 'figure'), Output('graph-activos', 'figure')],
+        [Input('map-graph', 'hoverData'), Input('dataset_dropdown', 'value'), Input('radio1', 'value')]
+)
+
+def update_time_series(hoverData, dataset_value, radio1_value):
+    #if dataset_value == "CC" and radio1_value == 'Comunas':
+    comuna = hoverData['points'][0]['customdata']
+    dff2 = df[df['Comuna'] == comuna]
+    title1 = '<b>{}</b><br> Confirmados'.format(comuna)
+    title2 = '<b>{}</b><br> Activos'.format(comuna)
+
+    return [
+        time_series(dff2, title1, "Confirmados"),
+        time_series(dff2, title2, "Activos")
+           ]
+
 
 #radioitem callback
 @app.callback(
@@ -187,10 +268,10 @@ def graph_updater(dataset_value, comuna_value, radio_value):
         regdf=pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto3/CasosTotalesCumulativo.csv")
         regnv=pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/output/producto13/CasosNuevosCumulativo.csv")
         #melting dates
-        df = regdf.melt(id_vars=["Region"], var_name="Fecha", value_name="Confirmados")
+        df1 = regdf.melt(id_vars=["Region"], var_name="Fecha", value_name="Confirmados")
         df2 = regnv.melt(id_vars=["Region"], var_name="Fecha", value_name = "Nuevos")
         #merging dataframes
-        merge_df = df.merge(df2)
+        merge_df = df1.merge(df2)
         #adding log columns
         with np.errstate(invalid='ignore'):
             merge_df["log10 (Confirmados)"]= np.log10(merge_df["Confirmados"])
@@ -236,9 +317,9 @@ def graph_updater(dataset_value, comuna_value, radio_value):
         fig.update_layout(margin={"r":0,"t":45,"l":0,"b":0}, title_text = f"Casos confirmados acumulados al {regdf.columns[-1]}")
         fig.update_layout(mapbox_zoom=3, mapbox_center = {"lat": -37.0902, "lon": -72.7129})
 
-        df = regdf.sort_values(by=regdf.columns[-1], ascending = True)
-        bar_fig = go.Figure(data=(go.Bar(y = df['Region'], x=df[df.columns[-1]], orientation = 'h', text=df[df.columns[-1]],
-                                         textposition = 'outside', marker={'color': np.log(df[df.columns[-1]]),'colorscale': 'Reds'}
+        df1 = regdf.sort_values(by=regdf.columns[-1], ascending = True)
+        bar_fig = go.Figure(data=(go.Bar(y = df1['Region'], x=df1[df1.columns[-1]], orientation = 'h', text=df1[df1.columns[-1]],
+                                         textposition = 'outside', marker={'color': np.log(df1[df1.columns[-1]]),'colorscale': 'Reds'}
                                          )
                                   ),
                        layout = (go.Layout(xaxis={'showgrid':False, 'ticks':'', 'showticklabels':False},
@@ -248,7 +329,7 @@ def graph_updater(dataset_value, comuna_value, radio_value):
                             )
 
         bar_fig.update_layout(margin={"r":0,"t":45,"l":0,"b":0}, autosize = True)
-        bar_fig.update_layout(title_text = f'Casos confirmados acumulados al {df.columns[-1]}| Top Comunas')
+        bar_fig.update_layout(title_text = f'Casos confirmados acumulados al {df1.columns[-1]}| Top Comunas')
 
         graphs.append(dbc.Col(dcc.Graph(
                                         id = 'mapa_ragional',
@@ -329,45 +410,29 @@ def graph_updater(dataset_value, comuna_value, radio_value):
 
     if dataset_value == 'CC' and radio_value == "Comunas":
 
-        df = pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/input/InformeEpidemiologico/CasosAcumuladosPorComuna.csv")
-        if comuna_value != 0:
-            df = df.loc[df['Codigo region'] == comuna_value]
-
-        fig = go.Figure(go.Choroplethmapbox(geojson=geojson_comunas, locations=df.Comuna, z=df[df.columns[-2]],
-                                    colorscale="Reds", zmin=0, zmax=100, showscale = False,
-                                    marker_opacity=0.9, marker_line_width=0.01, featureidkey='properties.comuna'))
-        fig.update_layout(mapbox_style="light", mapbox_accesstoken=token, autosize = True)
-        fig.update_layout(margin={"r":0,"t":45,"l":0,"b":0}, title_text = f"Casos confirmados acumulados al {df.columns[-2]}")
 
         #centering and zooming depending on the region
         if comuna_value == 0:
-            fig.update_layout(mapbox_zoom=3, mapbox_center = {"lat": -37.0902, "lon": -72.7129})
+            din_fig.update_layout(mapbox_zoom=3, mapbox_center = {"lat": -37.0902, "lon": -72.7129})
         else:
-            fig.update_layout(mapbox_zoom=7.5, mapbox_center = {"lat": region_center[comuna_value][1], "lon": region_center[comuna_value][0]})
+            din_fig.update_layout(mapbox_zoom=7.5, mapbox_center = {"lat": region_center[comuna_value][1], "lon": region_center[comuna_value][0]})
 
 
-        #bar graph
-        df = df.dropna()
-        df = df.sort_values(by=df.columns[-2], ascending = True)
-        bar_fig = go.Figure(data=(go.Bar(y = df['Comuna'], x=df[df.columns[-2]],
-                                text = df[df.columns[-2]], orientation = 'h', textposition = 'outside')),
-                       layout = (go.Layout(xaxis={'showgrid':False, 'ticks':'', 'showticklabels':False}, yaxis={'showgrid':False})))
-        if comuna_value != 0:
-            bar_fig.update_layout(yaxis={'tickmode':'linear'})
 
-        bar_fig.update_layout(margin={"r":0,"t":45,"l":0,"b":0}, autosize = True)
-        bar_fig.update_layout(title_text = f'Casos confirmados acumulados al {df.columns[-2]}| Top Comunas')
 
         graphs.append(dbc.Col(dcc.Graph(
-                                        id='mapa',
-                                        figure=fig,
-                                        style={'height':'100vh'}
+                                        id='map-graph',
+                                        figure=din_fig,
+                                        hoverData={'points':[{"customdata": "Santiago"}]},
+                                        style={'height':'80vh'}
                                         ), xl=6, md=12))
-        graphs.append(dbc.Col(dcc.Graph(
-                                        id = 'scatter',
-                                        figure = bar_fig,
-                                        style={'height':'100vh'}
-                                        ), xl=6, md=12))
+        graphs.append(dbc.Col(
+            [
+                dcc.Graph(id="graph-confirmados", style={'height':'40vh'}),
+                dcc.Graph(id='graph-activos', style={'height':'40vh'})
+            ],
+            xl=6, md=12
+        ))
 
     if dataset_value== 'ZC':
         import requests
@@ -420,46 +485,6 @@ def graph_updater(dataset_value, comuna_value, radio_value):
                                         figure = map
                                         ), xl=6, md=12))
 
-    if dataset_value == 'CA':
-        df = pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/input/InformeEpidemiologico/CasosActualesPorComuna.csv")
-        if comuna_value != 0:
-            df = df.loc[df['Codigo region'] == comuna_value]
-        fig = go.Figure(go.Choroplethmapbox(geojson=geojson_comunas, locations=df.Comuna, z=df[df.columns[-1]],
-                                    colorscale="Reds", zmin=0, zmax=100, showscale = False,
-                                    marker_opacity=0.9, marker_line_width=0.01, featureidkey='properties.comuna'))
-        fig.update_layout(mapbox_style="light", mapbox_accesstoken=token)
-        fig.update_layout(margin={"r":0,"t":45,"l":0,"b":0}, height = 700, title_text= f'Mapa Casos activos al {df.columns[-1]}')
-        #centering and zooming depending on the region
-        if comuna_value == 0:
-            fig.update_layout(mapbox_zoom=3, mapbox_center = {"lat": -37.0902, "lon": -72.7129})
-        else:
-            fig.update_layout(mapbox_zoom=7.5, mapbox_center = {"lat": region_center[comuna_value][1], "lon": region_center[comuna_value][0]})
-
-
-        #bar graph
-        df = df.dropna()
-        df = df.sort_values(by=df.columns[-1], ascending = True)
-        bar_fig = go.Figure(data=(go.Bar(y = df['Comuna'], x=df[df.columns[-1]],
-                            text = df[df.columns[-1]], orientation = 'h', textposition = 'outside')),
-                            layout = (go.Layout(xaxis={'showgrid':False, 'ticks':'', 'showticklabels':False}, yaxis={'showgrid':False})))
-
-        bar_fig.update_layout(margin={"r":0,"t":45,"l":0,"b":0}, height=700)
-        bar_fig.update_layout(title_text =f'Casos activos al {df.columns[-1]}| Top Comunas')
-        if comuna_value != 0:
-            bar_fig.update_layout(yaxis={'tickmode':'linear'})
-
-
-        #appending
-        graphs.append(dbc.Col(dcc.Graph(
-                                        id = 'mapa',
-                                        figure = fig,
-                                        style = {'height':'100vh'}
-                                        ),xl=6, md=12))
-        graphs.append(dbc.Col(dcc.Graph(
-                                        id = 'scatter',
-                                        figure = bar_fig,
-                                        style = {'height':'100vh'}
-                                        ), xl=6, md=12))
 
 
     if  dataset_value == 'EP':

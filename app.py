@@ -13,12 +13,28 @@ from dash.dependencies import Input, Output
 import plotly.graph_objects as go
 import plotly.express as px
 
+import locale
+locale.setlocale(locale.LC_TIME, 'es_ES')
+
 #links and references
 
 token = 'pk.eyJ1Ijoicml0bWFuZG90cHkiLCJhIjoiY2s3ZHJidGt0MDFjNzNmbGh5aDh4dTZ0OSJ9.-SROtN91ZvqtFpO1nGPFeg'
 api = 'https://api.covid19api.com'
 
-#df links
+#df
+activos_df = pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/input/InformeEpidemiologico/CasosActualesPorComuna.csv")
+confirmados_df =  pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/input/InformeEpidemiologico/CasosAcumuladosPorComuna.csv")
+confirmados_df = confirmados_df.loc[:,list(activos_df.columns)]
+#melting
+activos = activos_df.melt(id_vars=["Region","Codigo region", "Comuna","Codigo comuna", "Poblacion"],
+                          var_name="Fecha",
+                          value_name="Activos")
+
+confirmados = confirmados_df.melt(id_vars=["Region","Codigo region", "Comuna","Codigo comuna", "Poblacion"],
+                                  var_name="Fecha",
+                                  value_name="Confirmados")
+df = confirmados.merge(activos).dropna()
+df["Fecha"] = pd.to_datetime(df["Fecha"])
 
 #FUNCTIONS
 #centroids of a polygon
@@ -34,6 +50,15 @@ def centroid(geometry):
 #loading comunas
 with open('geojson/comunas.geojson') as json_file:
     geojson_comunas = json.load(json_file)
+
+for feature in geojson_comunas['features']:
+    cod = feature['properties']['cod_comuna']
+    try:
+        feature['properties']["Comuna"] = df.loc[df["Codigo comuna"]==cod]["Comuna"].values[0]
+    except:
+        pass
+
+
 #loading comunas
 with open('geojson/regiones.geojson') as json_file:
     geojson_regiones = json.load(json_file)
@@ -74,19 +99,7 @@ region_center = {11: (-75.50096893, -48.60930634),
                  1: (-69.38311566842106, -20.137420001842106),
                  5: (-71.12692737575001, -32.930289125250006)}
 
-activos_df = pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/input/InformeEpidemiologico/CasosActualesPorComuna.csv")
-confirmados_df =  pd.read_csv("https://raw.githubusercontent.com/MinCiencia/Datos-COVID19/master/input/InformeEpidemiologico/CasosAcumuladosPorComuna.csv")
-confirmados_df = confirmados_df.loc[:,list(activos_df.columns)]
-#melting
-activos = activos_df.melt(id_vars=["Region","Codigo region", "Comuna","Codigo comuna", "Poblacion"],
-                          var_name="Fecha",
-                          value_name="Activos")
 
-confirmados = confirmados_df.melt(id_vars=["Region","Codigo region", "Comuna","Codigo comuna", "Poblacion"],
-                                  var_name="Fecha",
-                                  value_name="Confirmados")
-df = confirmados.merge(activos).dropna()
-df["Fecha"] = pd.to_datetime(df["Fecha"])
 #transform every unique date to a number
 numdate= [x for x in range(len(df['Fecha'].unique()))]
 dates = df['Fecha'].unique()
@@ -95,8 +108,8 @@ dff = df[df["Fecha"]== dates[-1]]
 day = pd.to_datetime(dates[-1]).strftime("%d")
 month = pd.to_datetime(dates[-1]).strftime("%B")
 din_fig = go.Figure(go.Choroplethmapbox(geojson=geojson_comunas, locations=dff.Comuna, z=dff["Confirmados"],
-                                    colorscale="Reds", zmin=0, zmax=200, showscale = False, customdata=dff.Comuna,
-                                    marker_opacity=0.9, marker_line_width=0.01, featureidkey='properties.comuna'))
+                                    colorscale="Reds", zmin=0, zmax=700, showscale = False, customdata=dff.Comuna,
+                                    marker_opacity=0.9, marker_line_width=0.01, featureidkey='properties.Comuna'))
 din_fig.update_layout(mapbox_style="light", mapbox_accesstoken=token, autosize = True)
 din_fig.update_layout(margin={"r":0,"t":45,"l":0,"b":0}, title_text = f"Casos confirmados acumulados al {day} de {month}")
 din_fig.update_layout(mapbox_zoom=3, mapbox_center = {"lat": -37.0902, "lon": -72.7129})

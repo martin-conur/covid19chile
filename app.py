@@ -9,7 +9,7 @@ import dash
 import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 import plotly.graph_objects as go
 import plotly.express as px
 
@@ -132,6 +132,20 @@ app.layout = dbc.Container([
             ),
             html.H3([html.Span('CENTRO DE DATOS:', style={'font-weight': 'bold'}),
                      html.Span(' covid19 en Chile', style={'font-style': 'italic'})], style={'margin-bottom':30}),
+             dbc.Modal(
+                [
+                    dbc.ModalHeader("Bienvenido a covidatos.info"),
+                    dbc.ModalBody("Haz click en una comuna para ver detalles"),
+                    dbc.ModalFooter(
+                        dbc.Button(
+                            "Cerrar", id="close-centered", className="ml-auto"
+                        )
+                    ),
+                ],
+                id="modal-centered",
+                centered=True,
+                is_open=True
+            ),
 
             html.H6('filtrar por:'),
             dbc.Row(
@@ -183,6 +197,7 @@ app.layout = dbc.Container([
                         dcc.Graph(
                             figure=din_fig,
                             id="map-graph",
+                            clickData={'points':[{"customdata": "Santiago"}]},
                             hoverData={'points':[{"customdata": "Santiago"}]},
                             style={'height':'80vh'}
                         ),
@@ -204,6 +219,16 @@ app.layout = dbc.Container([
             html.Footer(" ")
                  ], fluid=True)
 
+@app.callback(
+    Output("modal-centered", "is_open"),
+    [Input("close-centered", "n_clicks")],
+    [State("modal-centered", "is_open")],
+)
+def toggle_modal(n1, is_open):
+    if n1:
+        return not is_open
+    return is_open
+
 def time_series(dff, title, y):
     return {
         'data': [dict(
@@ -222,20 +247,22 @@ def time_series(dff, title, y):
 
 @app.callback(
         [Output('graph-confirmados', 'figure'), Output('graph-activos', 'figure')],
-        [Input('map-graph', 'hoverData'), Input('dataset_dropdown', 'value'), Input('radio1', 'value')]
+        [Input('map-graph', 'clickData'), Input('dataset_dropdown', 'value'), Input('radio1', 'value')]
 )
 
-def update_time_series(hoverData, dataset_value, radio1_value):
-    #if dataset_value == "CC" and radio1_value == 'Comunas':
-    comuna = hoverData['points'][0]['customdata']
-    dff2 = df[df['Comuna'] == comuna]
-    title1 = '<b>{}</b><br> Confirmados'.format(comuna)
-    title2 = '<b>{}</b><br> Activos'.format(comuna)
+def update_time_series(clickData, dataset_value, radio1_value):
+    if radio1_value == "Comunas":
+        comuna = clickData['points'][0]['customdata']
+        dff2 = df[df['Comuna'] == comuna]
+        title1 = '<b>{}</b><br> Confirmados'.format(comuna)
+        title2 = '<b>{}</b><br> Activos'.format(comuna)
 
-    return [
-        time_series(dff2, title1, "Confirmados"),
-        time_series(dff2, title2, "Activos")
-           ]
+        return [
+            time_series(dff2, title1, "Confirmados"),
+            time_series(dff2, title2, "Activos")
+               ]
+    else:
+        return ({'data':None}, {'data':None})
 
 
 #radioitem callback

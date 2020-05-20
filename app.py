@@ -13,8 +13,6 @@ from dash.dependencies import Input, Output
 import plotly.graph_objects as go
 import plotly.express as px
 
-import locale
-locale.setlocale(locale.LC_TIME, 'es_ES')
 
 #links and references
 

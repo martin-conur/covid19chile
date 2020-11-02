@@ -106,7 +106,7 @@ dff = df[df["Fecha"]== dates[-1]]
 day = pd.to_datetime(dates[-1]).strftime("%d")
 month = pd.to_datetime(dates[-1]).strftime("%B")
 din_fig = go.Figure(go.Choroplethmapbox(geojson=geojson_comunas, locations=dff.Comuna, z=dff["Confirmados"],
-                                    colorscale="Reds", zmin=0, zmax=700, showscale = False, customdata=dff.Comuna,
+                                    colorscale="Reds", zmin=0, zmax=2000, showscale = False, customdata=dff.Comuna,
                                     marker_opacity=0.9, marker_line_width=0.01, featureidkey='properties.Comuna'))
 din_fig.update_layout(mapbox_style="light", mapbox_accesstoken=token, autosize = True)
 din_fig.update_layout(margin={"r":0,"t":45,"l":0,"b":0}, title_text = f"Casos confirmados acumulados al {day} de {month}")
@@ -153,9 +153,9 @@ app.layout = dbc.Container([
                     dbc.Col(
                         dcc.Dropdown(id='dataset_dropdown',
                                     options = [ {'label':'Casos Confirmados y Activos', 'value':'CC'},
-                                                {'label':'Series de tiempo Regiones', 'value':'STR'},
-                                                {'label':'Series de tiempo Comunas', 'value':'ST'},
-                                                {'label':'Zonas en Cuarentena', 'value':'ZC'},
+                                                #{'label':'Series de tiempo Regiones', 'value':'STR'},
+                                                #{'label':'Series de tiempo Comunas', 'value':'ST'},
+                                                #{'label':'Zonas en Cuarentena', 'value':'ZC'},
                                                 {'label':'Fallecidos, Críticos, UCI y respiradores', 'value':'EP'},
                                                 {'label':'Síntomas de confirmados y hospitalizados', 'value':'ES'},
                                                 {'label':'covid19 en el Mundo', 'value':'MUND'}
@@ -348,7 +348,7 @@ def graph_updater(dataset_value, comuna_value, radio_value):
             regiones_geojson = json.load(geojsonfile, encoding='utf-8-sig')
 
         fig = go.Figure(go.Choroplethmapbox(geojson=regiones_geojson, locations=regdf.Region, z=regdf[regdf.columns[-1]],
-                            colorscale="Reds", zmin=0, zmax=1000, showscale = False,
+                            colorscale="Reds", zmin=0, zmax=20000, showscale = False,
                             marker_opacity=0.9, marker_line_width=0.6, featureidkey='properties.region'))
         fig.update_layout(mapbox_style="light", mapbox_accesstoken=token, autosize = True)
 
@@ -462,6 +462,7 @@ def graph_updater(dataset_value, comuna_value, radio_value):
                                         id='map-graph',
                                         figure=din_fig,
                                         hoverData={'points':[{"customdata": "Santiago"}]},
+                                        clickData={'points':[{"customdata": "Santiago"}]},
                                         style={'height':'80vh'}
                                         ), xl=6, md=12))
         graphs.append(dbc.Col(
